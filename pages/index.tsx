@@ -3,8 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import Link from "next/link";
-
-const API_BASE_URL = "https://restcountries.com/v2";
+import { API_BASE_URL } from "@/lib/constants";
 
 async function fetcher(url: string): Promise<any> {
   try {
@@ -88,8 +87,9 @@ export default function HomePage() {
                 href={`/countries/${country.alpha3Code}`}
                 key={`country-${country.alpha3Code}-${idxCountry}`}
                 onClick={() => handleCountryClick(country.alpha3Code)}
-                className={`${selectedCountry === country.alpha3Code ? "text-blue-400" : ""
-                  }`}
+                className={`${
+                  selectedCountry === country.alpha3Code ? "text-blue-400" : ""
+                }`}
               >
                 {country.name}
               </Link>
