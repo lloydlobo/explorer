@@ -39,6 +39,15 @@ export default function HomePage() {
     setSelectedRegion(e.currentTarget.value);
   };
 
+  // `filteredData` is a new array created by filtering data based on the selectedRegion state. If selectedRegion is "all", all countries are included, otherwise only countries with a matching region property are included. This is achieved using the filter method, which iterates through the data array and returns a new array that satisfies the provided callback function.
+  const filteredData = data?.filter((country: any) => {
+    if (selectedRegion === "all") {
+      return true;
+    } else {
+      return country.region === selectedRegion;
+    }
+  });
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -58,20 +67,21 @@ export default function HomePage() {
               name="Filter by region"
               value={selectedRegion}
               onChange={(e) => handleRegionSelect(e)}
-              id=""
             >
               <option value="all">All</option>
-              <option value="America">America</option>
-              <option value="Oceania">Oceania</option>
+              <option value="Africa">Africa</option>
+              <option value="Americas">Americas</option>
               <option value="Asia">Asia</option>
+              <option value="Europe">Europe</option>
+              <option value="Oceania">Oceania</option>
             </select>
           </div>
         </header>
       </section>
       <section>
         <ul>
-          {data &&
-            data.map((c: any, idxC: number) => (
+          {filteredData &&
+            filteredData.map((c: any, idxC: number) => (
               <li
                 key={`country-${c}-${idxC}`}
                 onClick={() => handleCountryClick(c.name.common)}
