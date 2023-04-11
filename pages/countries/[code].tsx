@@ -1,5 +1,6 @@
 import Layout from "@/components/layout";
 import { API_BASE_URL } from "@/lib/constants";
+import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import { fetcher } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -18,9 +19,10 @@ const CountryPage: NextPage<CountryPageProps> = ({
   country,
   borderCountries,
 }) => {
+  const { setSelectedCountry } = useCountryStore();
   const router = useRouter();
-  const code = router.query.code as string;
 
+  const code = router.query.code as string;
   const { data: cachedCountry } = useQuery({
     queryKey: ["country", code],
     queryFn: async () =>
@@ -28,10 +30,18 @@ const CountryPage: NextPage<CountryPageProps> = ({
     initialData: country, // cacheTime: Infinity,
   });
 
+  // Handle click on a country link.
+  const handleCountryClick = (alpha3Code: ICountry["alpha3Code"]) => {
+    setSelectedCountry(alpha3Code);
+  };
+
   const displayedCountry = (cachedCountry as ICountry) ?? country;
 
   return (
     <Layout title={displayedCountry.name}>
+      <button onClick={() => router.back()} className="capitalize">
+        go back
+      </button>
       <h1>{displayedCountry.name}</h1>
       <Image
         width={180}
@@ -45,16 +55,27 @@ const CountryPage: NextPage<CountryPageProps> = ({
 
       <div className="flex gap-2 max-w-prose">
         <div className="font-bold">Borders</div>
+
         <div className="flex flex-wrap gap-2">
-          {borderCountries.map((borderCountry, idx) => (
-            <Link
-              key={`border-${borderCountry.alpha3Code}-${idx}-${displayedCountry.name}`}
-              href={`/countries/${borderCountry.alpha3Code}`}
-              className="p-2 min-w-max text-xs text-center rounded-lg border"
-            >
-              {borderCountry.name}
-            </Link>
-          ))}
+          {borderCountries.length > 0 ? (
+            borderCountries.map((borderCountry, idx) => (
+              <Link
+                key={`border-${borderCountry.alpha3Code}-${idx}-${displayedCountry.name}`}
+                href={`/countries/${borderCountry.alpha3Code}`}
+                data-code={borderCountry.alpha3Code}
+                onClick={(e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) =>
+                  handleCountryClick(
+                    e.currentTarget.dataset.code ?? borderCountry.alpha3Code
+                  )
+                }
+                className="p-2 min-w-max text-xs text-center rounded-lg border"
+              >
+                {borderCountry.name}
+              </Link>
+            ))
+          ) : (
+            <>N.A.</>
+          )}
         </div>
       </div>
     </Layout>
