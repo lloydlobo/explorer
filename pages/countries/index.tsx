@@ -7,32 +7,23 @@ import Layout from "@/components/layout";
 import { fetcher } from "@/lib/utils";
 import { GetStaticProps, NextPage } from "next";
 
+// Static Site Generation feature for Next.js.
+export const getStaticProps: GetStaticProps = async () => {
+  const countries = await fetcher({ url: `${API_BASE_URL}/all` });
+  return { props: { countries } };
+};
+
 type CountriesPageProps = {
   countries: ICountry[];
 };
 
-// 1. Fetch countries by region from API
-async function fetchCountriesByRegion(
-  region: string
-): Promise<unknown | ICountry[]> {
-  const URL = `${API_BASE_URL}/region/${region}`;
-  const countriesByRegion = await fetcher({ url: URL });
-  return countriesByRegion;
-}
-
+/**
+ * The `CountriesPage` function is a Next.js page that displays a list of countries
+ * fetched from an external API. It uses the useQuery hook from the @tanstack/react-query
+ * library for data fetching and caching.
+ */
 const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
-  // NOTE: PERF: Run useQuery if the `getStaticProp` data is stale.
-  const {
-    data: cachedCountries,
-    isLoading,
-    error,
-  } = useQuery<ICountry[]>({
-    queryKey: ["countries"],
-    queryFn: () => fetcher({ url: `${API_BASE_URL}/all` }),
-    initialData: countries,
-    cacheTime: Infinity,
-  });
-
+  // Get the selected country and region from the global store.
   const state = useCountryStore();
   const {
     selectedCountry,
@@ -41,77 +32,86 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
     setSelectedRegion,
   } = state;
 
+  // Fetch the list of countries using tanstack-query.
+  const {
+    data: cachedCountries, // data from cache or server
+    isLoading,
+    error,
+  } = useQuery<ICountry[]>({
+    queryKey: ["countries"], // key for caching
+    queryFn: () => fetcher({ url: `${API_BASE_URL}/all` }), // function to fetch data
+    initialData: countries, // initial data from getStaticProps
+    // cacheTime: Infinity, // how long to keep the data in cache, set to Infinity for now
+  });
+
+  // Handle click on a country link.
   const handleCountryClick = (alpha3Code: string) => {
     setSelectedCountry(alpha3Code);
   };
 
+  // Handle selection of a region.
   const handleRegionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedRegion(e.currentTarget.value);
   };
 
+  // Display a loading spinner while data is being fetched.
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
+  // Display an error message if there was an error fetching the data.
   if (error instanceof Error) {
     return <div>Error: {error.message}</div>;
   }
 
+  // Filter the list of countries based on the selected region.
   const displayedCountries = (cachedCountries as ICountry[]) || countries;
-
-  const filteredCountries =
+  const filteredCountries: ICountry[] =
     selectedRegion === "all"
       ? displayedCountries
       : displayedCountries?.filter(
           (country) => country.region === selectedRegion
         );
 
+  // Render the list of countries.
   return (
-    <>
-      <Layout title="Countries">
-        <header className="py-2">
-          <div>
-            <select
-              name="Filter by region"
-              value={selectedRegion}
-              onChange={(e) => handleRegionSelect(e)}
-            >
-              <option value="all">All</option>
-              <option value="Africa">Africa</option>
-              <option value="Americas">Americas</option>
-              <option value="Asia">Asia</option>
-              <option value="Europe">Europe</option>
-              <option value="Oceania">Oceania</option>
-            </select>
-          </div>
-        </header>
-        <section>
-          <div className="grid">
-            {filteredCountries &&
-              filteredCountries.map((country, idxCountry) => (
-                <Link
-                  href={`/countries/${country.alpha3Code}`}
-                  key={`country-${country.alpha3Code}-${idxCountry}`}
-                  onClick={() => handleCountryClick(country.alpha3Code)}
-                  className={`${
-                    selectedCountry === country.alpha3Code
-                      ? "text-blue-400"
-                      : ""
-                  }`}
-                >
-                  {country.name}
-                </Link>
-              ))}
-          </div>
-        </section>
-      </Layout>
-    </>
-  );
-};
+    <Layout title="Countries">
+      <header className="py-2">
+        <div>
+          <select
+            name="Filter by region"
+            value={selectedRegion}
+            onChange={(e) => handleRegionSelect(e)}
+          >
+            <option value="all">All</option>
+            <option value="Africa">Africa</option>
+            <option value="Americas">Americas</option>
+            <option value="Asia">Asia</option>
+            <option value="Europe">Europe</option>
+            <option value="Oceania">Oceania</option>
+          </select>
+        </div>
+      </header>
 
-export const getStaticProps: GetStaticProps = async () => {
-  const countries = await fetcher({ url: `${API_BASE_URL}/all` });
-  return { props: { countries } };
+      <section>
+        <div className="grid">
+          {filteredCountries &&
+            filteredCountries.map((country, idxCountry) => (
+              <Link
+                href={`/countries/${country.alpha3Code}`}
+                key={`country-${country.alpha3Code}-${idxCountry}`}
+                onClick={() => handleCountryClick(country.alpha3Code)}
+                className={`${
+                  selectedCountry === country.alpha3Code ? "text-blue-400" : ""
+                }`}
+              >
+                {country.name}
+              </Link>
+            ))}
+        </div>
+      </section>
+    </Layout>
+  );
 };
 
 export default CountriesPage;
