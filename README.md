@@ -1,38 +1,86 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Explorer
 
-## Getting Started
+Explore the world with this Next.js, Jotai, and React app.
+Browse and search through a list of countries, filter by region,
+and view detailed information about each country, including its flag,
+population and languages.
 
-First, run the development server:
+Discover bordering countries and navigate between detailed information pages
+with ease.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+<!--
+"Explore the world with ease: a simple and intuitive way to browse
+and learn about countries, their regions, and bordering nations." -->
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Table Of Contents
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+<!--toc:start-->
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+- [Explorer](#explorer)
+  - [Table Of Contents](#table-of-contents)
+  - [Usage](#usage)
+    - [Features](#features)
+      - [Viewing the Country List](#viewing-the-country-list)
+      - [Filtering by Region](#filtering-by-region)
+      - [Selecting a Country](#selecting-a-country)
+      - [Viewing Bordering Countries](#viewing-bordering-countries)
+  - [Technologies](#technologies)
+  - [Folder Structure](#folder-structure)
+  - [Similar Projects](#similar-projects)
+  - [License](#license)
+  <!--toc:end-->
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+1. Clone this repository to your local machine: `git clone https://github.com/lloydlobo/explorer.git`
+2. Navigate to the project directory: `cd repo-name`
+3. Install dependencies: `npm install`
+4. Start the development server: `npm run dev`
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+### Features
 
-To learn more about Next.js, take a look at the following resources:
+- Displays a list of countries with basic information such as name and flag.
+- Allows the user to filter countries by region.
+- Allows the user to select one or more countries and displays their names.
+- Displays the border countries of a selected country.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+When the app is running, you can use the following features:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+#### Viewing the Country List
 
-## Deploy on Vercel
+The home page of the app displays a list of all countries. You can browse through the list and click on a country to view more information about it.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+#### Filtering by Region
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+You can filter the list of countries by region using the dropdown menu at the top of the page. Simply select a region from the menu and the list of countries will update to show only the countries in that region.
+
+#### Selecting a Country
+
+To view more detailed information about a country, click on its name in the list. This will take you to a new page with more information about the country, including its flag, population, and languages.
+
+#### Viewing Bordering Countries
+
+When you are viewing detailed information about a country, you can see a list of its bordering countries by scrolling down to the "Border Countries" section. Clicking on one of these countries will take you to its own detailed information page.
+
+## Technologies
+
+- [Next.js](https://nextjs.org/) — A React framework for building server-side rendered and statically generated web applications.
+- [Jotai](https://github.com/pmndrs/jotai) — A simple state management library for React.
+- [Tailwind CSS](https://tailwindcss.com/) — A utility-first CSS framework for rapidly building custom user interfaces.
+
+## Folder Structure
+
+- `components` — React components that make up the UI.
+- `lib` — Utility functions and Jotai store for state management.
+- `pages` — Next.js pages that represent routes.
+- `public` — Static files that are served by Next.js.
+- `styles` — Global styles and Tailwind CSS configuration.
+
+## Similar Projects
+
+- [Countries Of The World](https://countries.petethompson.net/)
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

@@ -1,0 +1,20 @@
+// Offline Fallbacks
+//
+// Offline fallbacks are useful when the fetch failed from both cache and network, a precached resource is served instead of present an error from browser.
+//
+// To get started simply add a /_offline page such as pages/_offline.js or pages/_offline.jsx or pages/_offline.ts or pages/_offline.tsx. Then you are all set! When the user is offline, all pages which are not cached will fallback to '/_offline'.
+// https://github.com/shadowwalker/next-pwa/blob/master/examples/offline-fallback-v2/pages/_offline.js
+
+import Head from "next/head";
+
+const Fallback = () => (
+  <>
+    <Head>
+      <title>next-pwa example</title>
+    </Head>
+    <h1>This is offline fallback page</h1>
+    <h2>When offline, any page route will fallback to this page</h2>
+  </>
+);
+
+export default Fallback;
