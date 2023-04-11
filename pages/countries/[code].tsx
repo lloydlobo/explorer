@@ -9,6 +9,7 @@ import {
   NextPage,
 } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
 
@@ -58,6 +59,20 @@ const CountryPage: NextPage<CountryPageProps> = ({ country }) => {
       <p>Population: {displayedCountry.population}</p>
       <p>Region: {displayedCountry.region}</p>
       <p>Capital: {displayedCountry.capital}</p>
+      <div className="flex">
+        <div className="font-bold">Borders</div>
+        <div className="grid grid-auto-flow">
+          {displayedCountry.borders &&
+            displayedCountry.borders.map((border) => (
+              <Link
+                key={`border-${border}-${displayedCountry.name}`}
+                href={`/countries/${border}`}
+              >
+                {border}
+              </Link>
+            ))}
+        </div>
+      </div>
     </Layout>
   );
 };
