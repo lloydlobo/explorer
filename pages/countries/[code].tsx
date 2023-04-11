@@ -62,33 +62,21 @@ const CountryPage: NextPage<CountryPageProps> = ({ country }) => {
   );
 };
 
-// export const getStaticPaths: GetStaticPaths = async () => {
-//   const res = await fetch(`${API_BASE_URL}/all`);
-//   const countries: ICountry[] = await res.json();
-//
-//   const paths = countries.map((country: ICountry) => ({
-//     params: { code: country.alpha3Code },
-//   }));
-//
-//   return {
-//     paths,
-//     fallback: false,
-//   };
-// };
+export const getStaticPaths: GetStaticPaths = async () => {
+  const res = await fetch(`${API_BASE_URL}/all`);
+  const countries: ICountry[] = await res.json();
 
-// export const getStaticProps: GetStaticProps = async ({ params }) => {
-//   const code = params?.code as string;
-//   const res = await fetch(`${API_BASE_URL}/alpha/${code}}`);
-//   const country = await res.json();
-//
-//   return {
-//     props: {
-//       country,
-//     },
-//   };
-// };
+  const paths = countries.map((country: ICountry) => ({
+    params: { code: country.alpha3Code },
+  }));
 
-export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  return {
+    paths,
+    fallback: false,
+  };
+};
+
+export const getStaticProps: GetStaticProps = async ({ params }) => {
   const code = params?.code as string;
   const res = await fetch(`${API_BASE_URL}/alpha/${code}}`);
   const country = await res.json();
@@ -99,6 +87,18 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     },
   };
 };
+
+// export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+//   const code = params?.code as string;
+//   const res = await fetch(`${API_BASE_URL}/alpha/${code}}`);
+//   const country = await res.json();
+//
+//   return {
+//     props: {
+//       country,
+//     },
+//   };
+// };
 
 // NOTE: x You can not use getStaticProps or getStaticPaths with getServerSideProps. To use SSG, please remove getServerSideProps
 //If you need dynamic data that changes frequently and can't be pre-rendered at build time, then you should use getServerSideProps. This function runs on every request and fetches the data, which means you can always show the most up-to-date information to the user.

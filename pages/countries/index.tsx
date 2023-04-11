@@ -5,11 +5,32 @@ import Link from "next/link";
 import { API_BASE_URL } from "@/lib/constants";
 import Layout from "@/components/layout";
 import { fetcher } from "@/lib/utils";
+import { GetStaticProps, NextPage } from "next";
 
-export default function CountriesPage() {
-  const { data, isLoading, error } = useQuery<ICountry[]>({
+type CountriesPageProps = {
+  countries: ICountry[];
+};
+
+// 1. Fetch countries by region from API
+async function fetchCountriesByRegion(
+  region: string
+): Promise<unknown | ICountry[]> {
+  const URL = `${API_BASE_URL}/region/${region}`;
+  const countriesByRegion = await fetcher({ url: URL });
+  return countriesByRegion;
+}
+
+const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
+  // NOTE: PERF: Run useQuery if the `getStaticProp` data is stale.
+  const {
+    data: cachedCountries,
+    isLoading,
+    error,
+  } = useQuery<ICountry[]>({
     queryKey: ["countries"],
     queryFn: () => fetcher({ url: `${API_BASE_URL}/all` }),
+    initialData: countries,
+    cacheTime: Infinity,
   });
 
   const state = useCountryStore();
@@ -36,16 +57,14 @@ export default function CountriesPage() {
     return <div>Error: {error.message}</div>;
   }
 
-  // PERF: Can improve load time by:
-  // 1. Fetching countries by region from API.
-  // 2. using conditional `all` to break the filter method and just return the whole data.
-  const filteredData = data?.filter((country) => {
-    if (selectedRegion === "all") {
-      return true;
-    } else {
-      return country.region === selectedRegion;
-    }
-  });
+  const displayedCountries = (cachedCountries as ICountry[]) || countries;
+
+  const filteredCountries =
+    selectedRegion === "all"
+      ? displayedCountries
+      : displayedCountries?.filter(
+          (country) => country.region === selectedRegion
+        );
 
   return (
     <>
@@ -68,16 +87,17 @@ export default function CountriesPage() {
         </header>
         <section>
           <div className="grid">
-            {filteredData &&
-              filteredData.map((country, idxCountry) => (
+            {filteredCountries &&
+              filteredCountries.map((country, idxCountry) => (
                 <Link
                   href={`/countries/${country.alpha3Code}`}
                   key={`country-${country.alpha3Code}-${idxCountry}`}
                   onClick={() => handleCountryClick(country.alpha3Code)}
-                  className={`${selectedCountry === country.alpha3Code
+                  className={`${
+                    selectedCountry === country.alpha3Code
                       ? "text-blue-400"
                       : ""
-                    }`}
+                  }`}
                 >
                   {country.name}
                 </Link>
@@ -87,7 +107,14 @@ export default function CountriesPage() {
       </Layout>
     </>
   );
-}
+};
+
+export const getStaticProps: GetStaticProps = async () => {
+  const countries = await fetcher({ url: `${API_BASE_URL}/all` });
+  return { props: { countries } };
+};
+
+export default CountriesPage;
 
 // export default function HomePage() {
 //   const [countries, setCountries] = useState<any[] | null>(null);
