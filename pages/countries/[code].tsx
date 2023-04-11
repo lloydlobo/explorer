@@ -1,3 +1,4 @@
+import Layout from "@/components/layout";
 import { API_BASE_URL } from "@/lib/constants";
 import { ICountry } from "@/lib/types/types-country";
 import { useQuery } from "@tanstack/react-query";
@@ -45,7 +46,7 @@ const CountryPage: NextPage<CountryPageProps> = ({ country }) => {
   const displayedCountry = (cachedCountry as ICountry) || country;
 
   return (
-    <div>
+    <Layout title={displayedCountry.name}>
       <h1>{displayedCountry.name}</h1>
       <Image
         width={180}
@@ -57,7 +58,7 @@ const CountryPage: NextPage<CountryPageProps> = ({ country }) => {
       <p>Population: {displayedCountry.population}</p>
       <p>Region: {displayedCountry.region}</p>
       <p>Capital: {displayedCountry.capital}</p>
-    </div>
+    </Layout>
   );
 };
 
