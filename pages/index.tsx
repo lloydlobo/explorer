@@ -1,124 +1,127 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
+import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
+import { useCountryStore } from "@/lib/state/country-store";
 
-const inter = Inter({ subsets: ['latin'] })
+const API_BASE_URL = "https://restcountries.com/v3.1";
 
-export default function Home() {
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">pages/index.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`${inter.className} mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p
-            className={`${inter.className} m-0 max-w-[30ch] text-sm opacity-50`}
-          >
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
+async function fetcher(url: string): Promise<any> {
+  try {
+    const response = await axios.get(url);
+    return response.data;
+  } catch (err) {
+    if (axios.isAxiosError(err)) {
+      console.error("axios error", err);
+    } else {
+      console.error("unexpected error", err);
+    }
+  }
 }
+
+export default function HomePage() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["countries"],
+    queryFn: () => fetcher(`${API_BASE_URL}/all`),
+  });
+
+  const state = useCountryStore();
+  const {
+    selectedCountry,
+    setSelectedCountry,
+    selectedRegion,
+    setSelectedRegion,
+  } = state;
+
+  const handleCountryClick = (countryName: string) => {
+    setSelectedCountry(countryName);
+  };
+
+  const handleRegionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedRegion(e.currentTarget.value);
+  };
+
+  // `filteredData` is a new array created by filtering data based on the selectedRegion state. If selectedRegion is "all", all countries are included, otherwise only countries with a matching region property are included. This is achieved using the filter method, which iterates through the data array and returns a new array that satisfies the provided callback function.
+  const filteredData = data?.filter((country: any) => {
+    if (selectedRegion === "all") {
+      return true;
+    } else {
+      return country.region === selectedRegion;
+    }
+  });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error instanceof Error) {
+    return <div>Error: {error.message}</div>;
+  }
+
+  return (
+    <>
+      <section>
+        <header>
+          <h1 className="font-bold">Explorer</h1>
+
+          <div>
+            <select
+              name="Filter by region"
+              value={selectedRegion}
+              onChange={(e) => handleRegionSelect(e)}
+            >
+              <option value="all">All</option>
+              <option value="Africa">Africa</option>
+              <option value="Americas">Americas</option>
+              <option value="Asia">Asia</option>
+              <option value="Europe">Europe</option>
+              <option value="Oceania">Oceania</option>
+            </select>
+          </div>
+        </header>
+      </section>
+      <section>
+        <ul>
+          {filteredData &&
+            filteredData.map((c: any, idxC: number) => (
+              <li
+                key={`country-${c}-${idxC}`}
+                onClick={() => handleCountryClick(c.name.common)}
+                className={`${selectedCountry === c.name.common ? "text-blue-400" : ""
+                  }`}
+              >
+                {c.name.common}
+              </li>
+            ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
+// export default function HomePage() {
+//   const [countries, setCountries] = useState<any[] | null>(null);
+//
+//   async function fetchData() {
+//     const data = await fetcher(`${API_BASE_URL}/all`);
+//     setCountries(data as any);
+//   }
+//
+//   useState(() => {
+//     fetchData();
+//   });
+//
+//   return (
+//     <>
+//       <section>
+//         <h1>Explorer</h1>
+//       </section>
+//       <section>
+//         <ul>
+//           {countries &&
+//             countries.map((c, idxC) => (
+//               <li key={`country-${c}-${idxC}`}>{c.name.common}</li>
+//             ))}
+//         </ul>
+//       </section>
+//     </>
+//   );
+// }
