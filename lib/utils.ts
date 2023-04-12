@@ -7,6 +7,7 @@
  */
 export async function fetcher<T>(options: {
   url: RequestInfo | URL;
+  // }): Promise<T | Error> {
 }): Promise<T> {
   try {
     const response = await fetch(options.url);
