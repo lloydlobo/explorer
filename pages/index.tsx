@@ -1,8 +1,10 @@
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { useCountryStore } from "@/lib/state/country-store";
-
-const API_BASE_URL = "https://restcountries.com/v3.1";
+import { ICountry } from "@/lib/types/types-country";
+import Link from "next/link";
+import { API_BASE_URL } from "@/lib/constants";
+import Layout from "@/components/layout";
 
 async function fetcher(url: string): Promise<any> {
   try {
@@ -18,7 +20,7 @@ async function fetcher(url: string): Promise<any> {
 }
 
 export default function HomePage() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<ICountry[]>({
     queryKey: ["countries"],
     queryFn: () => fetcher(`${API_BASE_URL}/all`),
   });
@@ -31,8 +33,8 @@ export default function HomePage() {
     setSelectedRegion,
   } = state;
 
-  const handleCountryClick = (countryName: string) => {
-    setSelectedCountry(countryName);
+  const handleCountryClick = (alpha3Code: string) => {
+    setSelectedCountry(alpha3Code);
   };
 
   const handleRegionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -40,7 +42,7 @@ export default function HomePage() {
   };
 
   // `filteredData` is a new array created by filtering data based on the selectedRegion state. If selectedRegion is "all", all countries are included, otherwise only countries with a matching region property are included. This is achieved using the filter method, which iterates through the data array and returns a new array that satisfies the provided callback function.
-  const filteredData = data?.filter((country: any) => {
+  const filteredData = data?.filter((country) => {
     if (selectedRegion === "all") {
       return true;
     } else {
@@ -58,10 +60,8 @@ export default function HomePage() {
 
   return (
     <>
-      <section>
-        <header>
-          <h1 className="font-bold">Explorer</h1>
-
+      <Layout>
+        <header className="py-2">
           <div>
             <select
               name="Filter by region"
@@ -77,22 +77,26 @@ export default function HomePage() {
             </select>
           </div>
         </header>
-      </section>
-      <section>
-        <ul>
-          {filteredData &&
-            filteredData.map((c: any, idxC: number) => (
-              <li
-                key={`country-${c}-${idxC}`}
-                onClick={() => handleCountryClick(c.name.common)}
-                className={`${selectedCountry === c.name.common ? "text-blue-400" : ""
+        <section>
+          <div className="grid">
+            {filteredData &&
+              filteredData.map((country, idxCountry) => (
+                <Link
+                  href={`/countries/${country.alpha3Code}`}
+                  key={`country-${country.alpha3Code}-${idxCountry}`}
+                  onClick={() => handleCountryClick(country.alpha3Code)}
+                  className={`${
+                    selectedCountry === country.alpha3Code
+                      ? "text-blue-400"
+                      : ""
                   }`}
-              >
-                {c.name.common}
-              </li>
-            ))}
-        </ul>
-      </section>
+                >
+                  {country.name}
+                </Link>
+              ))}
+          </div>
+        </section>
+      </Layout>
     </>
   );
 }
