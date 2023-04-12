@@ -1,0 +1,272 @@
+import { useQueryAllCountries } from "@/lib/hooks/use-query-all-countries";
+import { ICountry } from "@/lib/types/types-country";
+import React, { useState } from "react";
+
+// Query an array of 200+ countries, use an indexing technique like an inverted index.
+//
+// - Create an empty object index.
+// - Loop through each country in the array of 200+ countries.
+// - Split the name of the country into tokens. For example, the name "United States of America" could be split into the tokens ["united", "states", "america"].
+// - Loop through each token for the country and add it to the index object. The keys of the index object will be the tokens, and the values will be an array of country objects that contain that token. If the token already exists as a key in the index object, then append the current country to the array of countries.
+// - When a search query is entered, split the query into tokens and look up each token in the index object. Return the intersection of the arrays of countries for each token, since we want to find countries that match all the tokens.
+const INDEX: { [key: string]: ICountry[] } = {};
+const TOKENIZABLE_FIELDS: (keyof ICountry)[] = [
+  "name",
+  "capital",
+  "region",
+  "alpha2Code",
+  "alpha3Code",
+  "nativeName",
+  "languages",
+];
+
+interface TokenIndex {
+  [token: string]: ICountry[];
+}
+
+/** `convertToString()` function is introduced to convert non-string values to string representations. */
+function convertToString(value: any): string {
+  if (typeof value === "string") {
+    return value.toLowerCase();
+  } else if (typeof value === "number") {
+    return value.toString();
+  }
+  return JSON.stringify(value);
+}
+
+/** The tokenizeCountry() function loops through each field in the TOKENIZABLE_FIELDS array and calls convertToString() on the field value to get its string representation. If the field value is undefined or null, it is skipped. The resulting tokens from each field are concatenated into the final tokens array. */
+function tokenizeCountry(country: ICountry): string[] {
+  const tokens: string[] = [];
+  for (const field of TOKENIZABLE_FIELDS) {
+    // if (typeof country[field] === "string") { tokens.push(...String(country[field]).toLowerCase().split(" ")); }
+    const fieldValue = country[field];
+    if (fieldValue !== undefined && fieldValue !== null) {
+      const fieldTokens: string[] = convertToString(fieldValue).split(" ");
+      tokens.push(...fieldTokens);
+    }
+  }
+  return tokens;
+}
+
+// Tokenize a string into an array of lowercase tokens.
+function tokenize(str: string): string[] {
+  return str.toLowerCase().split(" ");
+}
+
+// PERF: Loop through each country in the array and tokenize its name and abbreviation.
+// const tokens = [country.name, country.abbreviation].flatMap(tokenize);
+// function createTokenIndex(countries: ICountry[]): TokenIndex {
+//   const index: TokenIndex = {};
+//   const countriesIndex: { [key: string]: TokenIndex } = {};
+//   for (const country of countries) {
+//     const tokensCountry = tokenizeCountry(country);
+//     for (const token of tokensCountry) {
+//       if (!(token in index)) {
+//         index[token] = [country];
+//       } else {
+//         index[token].push(country);
+//       }
+//     }
+//     const countryName = country.name.toLowerCase(); // const alpha3Code = country.alpha3Code;
+//     for (const token of tokensCountry) {
+//       if (!(countryName in countriesIndex)) {
+//         countriesIndex[countryName] = {};
+//       }
+//       if (!countriesIndex[countryName][token]) {
+//         countriesIndex[countryName][token] = [];
+//       }
+//       countriesIndex[countryName][token].push(country);
+//     }
+//   }
+//   return index;
+// }
+
+type Entity = { [key: string]: any };
+type Index<EntityType> = { [token: string]: EntityType[] };
+
+function indexEntities<EntityType extends Entity>({
+  entities,
+  tokenize,
+  indexBy,
+}: {
+  entities: EntityType[];
+  tokenize: (entity: EntityType) => string[];
+  indexBy: (entity: EntityType) => string;
+}): { [key: string]: Index<EntityType> } {
+  const index: { [key: string]: Index<EntityType> } = {};
+
+  for (const entity of entities) {
+    const primaryKey = indexBy(entity);
+
+    for (const token of tokenize(entity)) {
+      if (!index[primaryKey]) {
+        index[primaryKey] = {};
+      }
+
+      if (!index[primaryKey][token]) {
+        index[primaryKey][token] = [];
+      }
+
+      index[primaryKey][token].push(entity);
+    }
+  }
+
+  return index;
+}
+
+// Search algorithm looks for countries that match any of the tokens in the query,
+// which should result in more accurate and relevant search results.
+//
+// const keys: string[] = Object.keys(index);
+//
+// results.push(...tokenResults.filter((c: ICountry) => !results.includes(c)));
+// results.push( ...tokenResults.filter( (c: ICountry) => !JSON.stringify(c).includes(JSON.stringify(results))));
+// if (results.length === 0) results = tokenResults;
+// else results = results.filter((c) => tokenResults.includes(c));
+function searchCountries(query: string, index: any): ICountry[] {
+  const queryTokens: string[] = tokenize(query); // ["ind"].
+  let results: ICountry[] = [];
+  for (const token of queryTokens) {
+    const tokenResults = index[token] ?? []; // FIX: the token should include any key that matches the index key.
+    results = results.filter((c) => tokenResults.includes(c));
+    if (results.length === 0) {
+      results = tokenResults;
+    }
+  }
+  return results;
+}
+
+// This version uses the indexEntities function to create indexes for the countries array based on the alpha3Code and name properties. The indexEntities function takes an array of entities, a tokenize function that converts an entity into an array of tokens, and an indexBy function that returns the primary key for an entity. It returns an object containing indexes for the entities array based on the primary key and the tokens generated by the tokenize function.
+//
+// The createTokenIndex function now uses indexEntities to create the two indexes and returns them in an object with the index and countriesIndex propertie
+function createTokenIndex(countries: ICountry[]): {
+  indexAlpha3Code: { [key: string]: Index<ICountry> };
+  indexCountryName: { [key: string]: Index<ICountry> };
+} {
+  const indexAlpha3Code = indexEntities<ICountry>({
+    entities: countries,
+    tokenize: tokenizeCountry,
+    indexBy: (country) => country.alpha3Code,
+  });
+
+  const indexCountryName = indexEntities<ICountry>({
+    entities: countries,
+    tokenize: tokenizeCountry,
+    indexBy: (country) => country.name.toLowerCase(),
+  });
+
+  return {
+    indexAlpha3Code,
+    indexCountryName,
+  };
+}
+
+export default function Search() {
+  const [query, setQuery] = useState("United states");
+  const [searchResults, setSearchResults] = useState([] as ICountry[]);
+  const { data: countries, isLoading, error } = useQueryAllCountries();
+  // Use local variable index, which is created using React.useMemo to avoid recomputing the index unnecessarily.
+  // const index = React.useMemo(
+  //   () => (countries ? createTokenIndex(countries) : {}),
+  //   [countries]
+  // );
+  const index = React.useMemo(
+    () =>
+      countries
+        ? createTokenIndex(countries)
+        : { indexAlpha3Code: {}, indexCountryName: {} },
+    [countries]
+  );
+
+  function handleInputOnChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // TODO: useDebounce()....
+    e.preventDefault();
+    const updatedQuery = e.currentTarget.value;
+    setQuery(updatedQuery);
+    const results: ICountry[] = searchCountries(
+      updatedQuery,
+      index.indexCountryName
+    );
+    setSearchResults(results);
+  }
+  // tokenizeCountries(countries ?? []);
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
+  return (
+    <form action="search">
+      <input
+        type="search"
+        onChange={(e) => handleInputOnChange(e)}
+        value={query}
+        placeholder="Search a country…"
+      />
+      {searchResults.map((result, idxResult) => (
+        <div key={"searchResults-" + result.alpha2Code + idxResult}>
+          {result.name}
+        </div>
+      ))}
+      {/* {countries.map((country, idxCountry) => { */}
+      {/*   if ( */}
+      {/*     query.length > 2 && */}
+      {/*     country.name.toLowerCase().includes(query.toLowerCase()) */}
+      {/*   ) { */}
+      {/*     return ( */}
+      {/*       <div key={"country-search-" + country.alpha2Code + idxCountry}> */}
+      {/*         {country.name} */}
+      {/*       </div> */}
+      {/*     ); */}
+      {/*   } else { */}
+      {/*     return null; */}
+      {/*   } */}
+      {/* })} */}
+    </form>
+  );
+}
+
+type IndexTokensProps<T extends { name: string }> = {
+  data: T[];
+};
+
+export function indexDataToToken<T extends { name: string }>({
+  data,
+}: IndexTokensProps<T>): Map<string, string> {
+  const lookupDict = new Map<string, string>();
+  for (const country of data) {
+    lookupDict.set(String(country.name), JSON.stringify(country));
+  }
+  return lookupDict;
+}
+
+// const tokens: string[] = country.name.toLowerCase().split(" ");
+// const tokens: string[] = [ ...(country.name?.toLowerCase().split(" ") ?? []),
+//   ...(country.capital?.toLowerCase().split(" ") ?? []), ];
+
+// export function tokenizeCountries(countries: ICountry[]): void {
+//   for (const country of countries) {
+//     const tokens: string[] = tokenizeCountry(country);
+//
+//     for (const token of tokens) {
+//       if (!(token in INDEX)) {
+//         INDEX[token] = [country];
+//       } else {
+//         INDEX[token].push(country);
+//       }
+//     }
+//   }
+// }
+
+export function search(query: string): ICountry[] {
+  const tokens = query.toLowerCase().split(" ");
+  let results = INDEX[tokens[0]] ?? [];
+
+  for (let i = 1; i < tokens.length; i++) {
+    const tokenResults = INDEX[tokens[i]] ?? [];
+    results = results.filter((c) => tokenResults.includes(c));
+  }
+
+  return results;
+}
