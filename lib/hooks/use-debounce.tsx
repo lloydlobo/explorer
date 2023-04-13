@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 type UseDebounceParams<T> = {
   value: T;
   delay?: number;
+  callback?: (value: T) => void;
 };
 
 /**
@@ -17,6 +18,7 @@ type UseDebounceParams<T> = {
  *
  * @param value The value to debounce.
  * @param delay The delay in milliseconds before the value is updated. Default is 500.
+ * @param callback A function to execute after the debounced value has been updated.
  * @returns The debounced value.
  *
  * [See also](https://github.com/TomDoesTech/debounce-throttle/blob/main/src/hooks/useDebounce.tsx)
@@ -24,6 +26,7 @@ type UseDebounceParams<T> = {
 export function useDebounce<T>({
   value,
   delay = 500,
+  callback,
 }: UseDebounceParams<T>): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   /*
@@ -33,6 +36,9 @@ export function useDebounce<T>({
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       setDebouncedValue(value);
+      if (callback) {
+        callback(value);
+      }
     }, delay);
     /**
      * The cleanup function clears the setTimeout timer to prevent it from running unnecessarily.
@@ -44,7 +50,7 @@ export function useDebounce<T>({
     return function cleanUp(): void {
       clearTimeout(timeoutId);
     };
-  }, [value, delay]);
+  }, [value, delay, callback]);
 
   return debouncedValue;
 }
