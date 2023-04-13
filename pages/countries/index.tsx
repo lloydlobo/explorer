@@ -4,8 +4,18 @@ import { ICountry } from "@/lib/types/types-country";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/constants";
 import Layout from "@/components/layout";
-import { fetcher } from "@/lib/utils";
+import { cn, fetcher } from "@/lib/utils";
 import { GetStaticProps, NextPage } from "next";
+import SelectRegion from "@/components/select-region";
+import Search from "@/components/search";
+import { ChangeEvent } from "react";
+import { useToast } from "@/lib/hooks/ui/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Static Site Generation feature for Next.js.
 export const getStaticProps: GetStaticProps = async () => {
@@ -23,6 +33,7 @@ type CountriesPageProps = {
  * library for data fetching and caching.
  */
 const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
+  const { toast } = useToast();
   // Get the selected country and region from the global store.
   const state = useCountryStore();
   const {
@@ -50,8 +61,12 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   };
 
   // Handle selection of a region.
-  const handleRegionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRegion(e.currentTarget.value);
+  const handleRegionSelect = (value: string) => {
+    setSelectedRegion(value);
+    toast({
+      title: `Filter: Region to ${value}`,
+      description: "",
+    });
   };
 
   // Display a loading spinner while data is being fetched.
@@ -77,19 +92,26 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   return (
     <Layout title="Countries">
       <header className="py-2">
-        <div>
-          <select
-            name="Filter by region"
-            value={selectedRegion}
-            onChange={(e) => handleRegionSelect(e)}
-          >
-            <option value="all">All</option>
-            <option value="Africa">Africa</option>
-            <option value="Americas">Americas</option>
-            <option value="Asia">Asia</option>
-            <option value="Europe">Europe</option>
-            <option value="Oceania">Oceania</option>
-          </select>
+        <div
+          className={cn(
+            "relative z-10 flex flex-1 flex-wrap items-start justify-between"
+          )}
+        >
+          <Search />
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <SelectRegion
+                  selectedRegion={selectedRegion}
+                  handleRegionSelect={handleRegionSelect}
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Filter by region</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </header>
 

@@ -3,6 +3,8 @@ import { useCountrySearch } from "@/lib/hooks/use-country-search";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 /**
  * The `Search` component exports a React component that displays a search bar
@@ -53,11 +55,19 @@ export default function Search() {
   }
   return (
     <form action="search">
-      <input
+      {/* <input */}
+      {/*   type="search" */}
+      {/*   placeholder="Search a country…" */}
+      {/*   autoFocus={true} */}
+      {/*   onChange={(e) => handleInputOnChange(e)} */}
+      {/* /> */}
+
+      <Input
         type="search"
         placeholder="Search a country…"
         autoFocus={true}
         onChange={(e) => handleInputOnChange(e)}
+        className={cn("min-w-[60vw] md:min-w-[45vw]")}
       />
 
       <div className="grid">

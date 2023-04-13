@@ -1,4 +1,6 @@
 import Layout from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/constants";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
@@ -9,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
+import { ButtonLoading } from "@/components/button-loading";
 
 type CountryPageProps = {
   country: ICountry;
@@ -23,7 +26,11 @@ const CountryPage: NextPage<CountryPageProps> = ({
   const router = useRouter();
 
   const code = router.query.code as string;
-  const { data: cachedCountry } = useQuery({
+  const {
+    data: cachedCountry,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["country", code],
     queryFn: async () =>
       await fetcher({ url: `${API_BASE_URL}/alpha/${code}` }),
@@ -35,13 +42,23 @@ const CountryPage: NextPage<CountryPageProps> = ({
     setSelectedCountry(alpha3Code);
   };
 
+  if (isLoading) return <ButtonLoading label="Please wait" />;
+  // Display an error message if there was an error fetching the data.
+  if (error instanceof Error) {
+    return <div>Error: {error.message}</div>;
+  }
+
   const displayedCountry = (cachedCountry as ICountry) ?? country;
 
   return (
     <Layout title={displayedCountry.name}>
-      <button onClick={() => router.back()} className="capitalize">
+      <Button
+        variant={"default"}
+        onClick={() => router.back()}
+        className="capitalize"
+      >
         go back
-      </button>
+      </Button>
       <h1>{displayedCountry.name}</h1>
       <Image
         width={180}

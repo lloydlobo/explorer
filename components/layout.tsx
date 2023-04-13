@@ -1,7 +1,6 @@
 import Head from "next/head";
 import React from "react";
 import Navbar from "@/components/navbar";
-import Search from "./search";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -24,7 +23,6 @@ export default function Layout({ children, title }: LayoutProps) {
 
       <header>
         <Navbar />
-        <Search />
       </header>
 
       {children}
