@@ -1,21 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
-import Link from "next/link";
 import { API_BASE_URL } from "@/lib/constants";
 import Layout from "@/components/layout";
 import { cn, fetcher } from "@/lib/utils";
 import { GetStaticProps, NextPage } from "next";
 import SelectRegion from "@/components/select-region";
 import Search from "@/components/search";
-import { ChangeEvent } from "react";
 import { useToast } from "@/lib/hooks/ui/use-toast";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Indicator } from "@/components/ui/indicator";
 
 // Static Site Generation feature for Next.js.
 export const getStaticProps: GetStaticProps = async () => {
@@ -85,8 +80,8 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
     selectedRegion === "all"
       ? displayedCountries
       : displayedCountries?.filter(
-          (country) => country.region === selectedRegion
-        );
+        (country) => country.region === selectedRegion
+      );
 
   // Render the list of countries.
   return (
@@ -99,37 +94,65 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
         >
           <Search />
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <SelectRegion
-                  selectedRegion={selectedRegion}
-                  handleRegionSelect={handleRegionSelect}
-                />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Filter by region</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <SelectRegion
+            selectedRegion={selectedRegion}
+            handleRegionSelect={handleRegionSelect}
+          />
         </div>
       </header>
 
       <section>
-        <div className="grid">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {filteredCountries &&
-            filteredCountries.map((country, idxCountry) => (
-              <Link
-                href={`/countries/${country.alpha3Code}`}
-                key={`country-${country.alpha3Code}-${idxCountry}`}
-                onClick={() => handleCountryClick(country.alpha3Code)}
-                className={`${
-                  selectedCountry === country.alpha3Code ? "text-blue-400" : ""
-                }`}
-              >
-                {country.name}
-              </Link>
-            ))}
+            filteredCountries.map((country, idxCountry) => {
+              // For development, debugging use less results for fast load times.
+              if (idxCountry < 300) {
+                return (
+                  <div
+                    // href={`/countries/${country.alpha3Code}`}
+                    key={`country-${country.alpha3Code}-${idxCountry}`}
+                  // onClick={() => handleCountryClick(country.alpha3Code)}
+                  // className={`${ selectedCountry === country.alpha3Code ? "text-blue-400" : "" }`}
+                  >
+                    <Card
+                      padding="none"
+                      paddingBody="p-4"
+                      linkHref={`/countries/${country.alpha3Code}`}
+                      action={
+                        <Button variant={"ghost"} className="ms-auto">
+                          Click Me
+                        </Button>
+                      }
+                      onClick={(_e) => handleCountryClick(country.alpha3Code)}
+                      isActive={selectedCountry === country.alpha3Code}
+                      activeIndicator={
+                        <div className="absolute -top-2 right-3">
+                          <Indicator />
+                        </div>
+                      }
+                      title={country.name}
+                      description={
+                        <div className="grid stats">
+                          <div className="flex gap-2 stat">
+                            <div className="font-bold">Population</div>
+                            <div className="">{country.population}</div>
+                          </div>
+                          <div className="flex gap-2 stat">
+                            <div className="font-bold">Capital</div>
+                            <div className="">{country.capital}</div>
+                          </div>
+                        </div>
+                      }
+                      imageUrl={country.flag}
+                      imageAlt={`Flag of ${country.name}`}
+                    // imageVariant={"video"}
+                    />
+                  </div>
+                );
+              } else {
+                return null;
+              }
+            })}
         </div>
       </section>
     </Layout>

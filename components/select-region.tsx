@@ -30,7 +30,7 @@ export default function SelectRegion({
       value={selectedRegion}
       onValueChange={(value) => handleRegionSelect(value)}
     >
-      <SelectTrigger className="w-[180px]">
+      <SelectTrigger title="Filter by region" className="w-[180px]">
         <SelectValue placeholder="Filter by region" />
       </SelectTrigger>
       <SelectContent>
