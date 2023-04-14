@@ -25,7 +25,6 @@ type CountriesPageProps = {
  */
 const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   const { toast } = useToast();
-  const [isTable, setIsTable] = useState(false);
 
   const { selectedRegion, setSelectedRegion, selectedView, setSelectedView } =
     useCountryStore();
@@ -53,15 +52,16 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
     switch (value as ViewType) {
       case ViewType.Default:
       case ViewType.Cards:
-        setIsTable(false);
+        setSelectedView(ViewType.Cards);
         break;
       case ViewType.Table:
-        setIsTable(true);
+        setSelectedView(ViewType.Table);
         break;
       default:
-        // Handle invalid value
+        // TODO: Handle invalid value.
         break;
     }
+
     toast({
       title: `View set to ${value}`,
       description: "",
@@ -89,8 +89,8 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
     selectedRegion === "all"
       ? displayedCountries
       : displayedCountries?.filter(
-          (country) => country.region === selectedRegion
-        );
+        (country) => country.region === selectedRegion
+      );
 
   const styleHeader = cn(`${isOpenBanner ? "top-20 md:top-16" : "top-8"}
     sticky py-4 mb-2 z-30 w-full bg-white bg-opacity-90 rounded-b-md backdrop-blur-2xl 
@@ -129,8 +129,7 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
       {countries ? (
         <CountryList
           countries={filteredCountries}
-          isTable={isTable}
-          setIsTable={setIsTable}
+          selectedView={selectedView} // typescript: Type 'string' is not assignable to type 'ViewType'.
         />
       ) : null}
     </Layout>

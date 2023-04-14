@@ -10,7 +10,8 @@ import { ViewType } from "@/lib/enums";
 import React from "react";
 
 type SelectViewProps = {
-  selectedView: string;
+  // typescript: Type 'string' is not assignable to type 'ViewType'.
+  selectedView: string | ViewType; // TODO: how to typecheck the values. ZOD?
   handleSelectView: (value: string) => void;
 };
 

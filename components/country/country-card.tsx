@@ -20,11 +20,11 @@ export function CountryCard({ country }: CountryCardProps) {
       padding="none"
       paddingBody="p-4"
       linkHref={`/countries/${country.alpha3Code}`}
-      action={
-        <Button variant={"ghost"} className="ms-auto">
-          Click Me
-        </Button>
-      }
+      // action={
+      //   <Button variant={"ghost"} className="ms-auto">
+      //     Click Me
+      //   </Button>
+      // }
       onClick={(_e) => handleCountryClick(country.alpha3Code)}
       isActive={selectedCountry === country.alpha3Code}
       activeIndicator={
