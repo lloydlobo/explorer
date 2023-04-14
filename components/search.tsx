@@ -3,6 +3,9 @@ import { useCountrySearch } from "@/lib/hooks/use-country-search";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 /**
  * The `Search` component exports a React component that displays a search bar
@@ -33,7 +36,8 @@ import Link from "next/link";
  */
 export default function Search() {
   const { setSelectedCountry } = useCountryStore();
-  const { searchResults, isLoading, error, setQuery } = useCountrySearch();
+  const { searchResults, isLoading, error, query, setQuery } =
+    useCountrySearch();
 
   function handleCountryClick(alpha3Code: ICountry["alpha3Code"]) {
     setSelectedCountry(alpha3Code);
@@ -48,46 +52,53 @@ export default function Search() {
   if (isLoading) {
     return <div>Loading...</div>;
   }
+
   if (error) {
     return <div>Error: {error.message}</div>;
   }
+
   return (
     <form action="search">
-      <input
+      <Input
         type="search"
         placeholder="Search a country…"
         autoFocus={true}
         onChange={(e) => handleInputOnChange(e)}
+        className={cn("min-w-[60vw] md:min-w-[45vw]")}
       />
-
-      <div className="grid">
-        {searchResults &&
-          searchResults.map((result, idxResult) => {
-            const country = result.item;
-            const score = result.score ?? -1;
-            if (score * 100 <= 4 && score * 100 >= 0) {
-              return (
-                <Link
-                  key={`country-search-fuse-${country.alpha3Code}-${idxResult}`}
-                  href={`/countries/${country.alpha3Code}`}
-                  data-code={country.alpha3Code}
-                  onClick={(e) =>
-                    handleCountryClick(
-                      e.currentTarget.dataset.code ?? country.alpha3Code
-                    )
-                  }
-                >
-                  {country.name}
-                  <div aria-label="search score rank" className="sr-only">
-                    {(score * 100).toFixed(0)}
-                  </div>
-                </Link>
-              );
-            } else {
-              return null;
-            }
-          })}
-      </div>
+      {searchResults !== null &&
+        searchResults.length > 0 &&
+        query.length > 0 ? (
+        <ScrollArea className="p-4 rounded-md border h-[200px] max-w-fit min-w-[350px]">
+          <div className="grid">
+            {searchResults.map((result, idxResult) => {
+              const country = result.item;
+              const score = result.score ?? -1;
+              if (score * 100 <= 4 && score * 100 >= 0) {
+                return (
+                  <Link
+                    key={`country-search-fuse-${country.alpha3Code}-${idxResult}`}
+                    href={`/countries/${country.alpha3Code}`}
+                    data-code={country.alpha3Code}
+                    onClick={(e) =>
+                      handleCountryClick(
+                        e.currentTarget.dataset.code ?? country.alpha3Code
+                      )
+                    }
+                  >
+                    {country.name}
+                    <div aria-label="search score rank" className="sr-only">
+                      {(score * 100).toFixed(0)}
+                    </div>
+                  </Link>
+                );
+              } else {
+                return null;
+              }
+            })}
+          </div>
+        </ScrollArea>
+      ) : null}
     </form>
   );
 }

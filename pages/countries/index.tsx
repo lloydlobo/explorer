@@ -1,58 +1,104 @@
-import { useQuery } from "@tanstack/react-query";
-import { useCountryStore } from "@/lib/state/country-store";
-import { ICountry } from "@/lib/types/types-country";
-import Link from "next/link";
-import { API_BASE_URL } from "@/lib/constants";
-import Layout from "@/components/layout";
-import { fetcher } from "@/lib/utils";
 import { GetStaticProps, NextPage } from "next";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
-// Static Site Generation feature for Next.js.
-export const getStaticProps: GetStaticProps = async () => {
-  const countries = await fetcher({ url: `${API_BASE_URL}/all` });
-  return { props: { countries } };
-};
+import { useCountryStore } from "@/lib/state/country-store";
+import { useToast } from "@/lib/hooks/ui/use-toast";
+import { ICountry } from "@/lib/types/types-country";
+import { API_BASE_URL } from "@/lib/constants";
+import { cn, fetcher } from "@/lib/utils";
+import { useAppStore } from "@/lib/state/app-store";
+import Layout from "@/components/layout";
+import SelectRegion from "@/components/select-region";
+import Search from "@/components/search";
+import { CountryList } from "@/components/country/country-list";
+import { SelectView } from "@/components/select-view";
+import { ViewType } from "@/lib/enums";
 
 type CountriesPageProps = {
   countries: ICountry[];
 };
-
 /**
  * The `CountriesPage` function is a Next.js page that displays a list of countries
  * fetched from an external API. It uses the useQuery hook from the @tanstack/react-query
  * library for data fetching and caching.
  */
 const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
-  // Get the selected country and region from the global store.
-  const state = useCountryStore();
-  const {
-    selectedCountry,
-    setSelectedCountry,
-    selectedRegion,
-    setSelectedRegion,
-  } = state;
+  const { toast } = useToast();
 
-  // Fetch the list of countries using tanstack-query.
+  const { selectedRegion, setSelectedRegion, selectedView, setSelectedView } =
+    useCountryStore();
+  const { isOpenBanner } = useAppStore();
+
   const {
-    data: cachedCountries, // data from cache or server
+    data: cachedCountries, // use default value if there's no cached data yet.
     isLoading,
     error,
   } = useQuery<ICountry[]>({
     queryKey: ["countries"], // key for caching
     queryFn: () => fetcher({ url: `${API_BASE_URL}/all` }), // function to fetch data
     initialData: countries, // initial data from getStaticProps
-    // cacheTime: Infinity, // how long to keep the data in cache, set to Infinity for now
-  });
+  }); // Fetch the list of countries using tanstack-query.
 
-  // Handle click on a country link.
-  const handleCountryClick = (alpha3Code: string) => {
-    setSelectedCountry(alpha3Code);
+  const handleRegionSelect = (value: string) => {
+    setSelectedRegion(value);
+    toast({
+      title: `Filtering region to ${value}`,
+      description: "",
+    });
   };
 
-  // Handle selection of a region.
-  const handleRegionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRegion(e.currentTarget.value);
+  const handleSelectView = (value: string) => {
+    switch (value as ViewType) {
+      case ViewType.Default:
+      case ViewType.Cards:
+        setSelectedView(ViewType.Cards);
+        break;
+      case ViewType.Table:
+        setSelectedView(ViewType.Table);
+        break;
+      default:
+        // TODO: Handle invalid value.
+        break;
+    }
+
+    toast({
+      title: `View set to ${value}`,
+      description: "",
+    });
   };
+
+  // // Handle selection of country list layout view.
+  // // default: card. options: default | card | table
+  // const handleSelectView = (value: string) => {
+  //   setSelectedView(value);
+  //   if (value === "default" || value === "cards") {
+  //     setIsTable(false);
+  //   } else if (value === "table") {
+  //     setIsTable(true);
+  //   }
+  //   toast({
+  //     title: `Viewing as ${value}`,
+  //     description: "",
+  //   });
+  // };
+
+  // Filter the list of countries based on the selected region.
+  const displayedCountries = (cachedCountries as ICountry[]) || countries;
+  const filteredCountries: ICountry[] =
+    selectedRegion === "all"
+      ? displayedCountries
+      : displayedCountries?.filter(
+        (country) => country.region === selectedRegion
+      );
+
+  const styleHeader = cn(`${isOpenBanner ? "top-20 md:top-16" : "top-8"}
+    sticky py-4 mb-2 z-30 w-full bg-white bg-opacity-90 rounded-b-md backdrop-blur-2xl 
+    border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900/80`);
+
+  const styleSearchBar = cn(
+    "relative z-10 flex flex-1 flex-wrap items-start justify-between"
+  );
 
   // Display a loading spinner while data is being fetched.
   if (isLoading) {
@@ -63,55 +109,37 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   if (error instanceof Error) {
     return <div>Error: {error.message}</div>;
   }
-
-  // Filter the list of countries based on the selected region.
-  const displayedCountries = (cachedCountries as ICountry[]) || countries;
-  const filteredCountries: ICountry[] =
-    selectedRegion === "all"
-      ? displayedCountries
-      : displayedCountries?.filter(
-          (country) => country.region === selectedRegion
-        );
-
   // Render the list of countries.
   return (
     <Layout title="Countries">
-      <header className="py-2">
-        <div>
-          <select
-            name="Filter by region"
-            value={selectedRegion}
-            onChange={(e) => handleRegionSelect(e)}
-          >
-            <option value="all">All</option>
-            <option value="Africa">Africa</option>
-            <option value="Americas">Americas</option>
-            <option value="Asia">Asia</option>
-            <option value="Europe">Europe</option>
-            <option value="Oceania">Oceania</option>
-          </select>
+      <header className={styleHeader}>
+        <div className={styleSearchBar}>
+          <Search />
+          <SelectView
+            selectedView={selectedView}
+            handleSelectView={handleSelectView}
+          />
+          <SelectRegion
+            selectedRegion={selectedRegion}
+            handleRegionSelect={handleRegionSelect}
+          />
         </div>
       </header>
 
-      <section>
-        <div className="grid">
-          {filteredCountries &&
-            filteredCountries.map((country, idxCountry) => (
-              <Link
-                href={`/countries/${country.alpha3Code}`}
-                key={`country-${country.alpha3Code}-${idxCountry}`}
-                onClick={() => handleCountryClick(country.alpha3Code)}
-                className={`${
-                  selectedCountry === country.alpha3Code ? "text-blue-400" : ""
-                }`}
-              >
-                {country.name}
-              </Link>
-            ))}
-        </div>
-      </section>
+      {countries ? (
+        <CountryList
+          countries={filteredCountries}
+          selectedView={selectedView} // typescript: Type 'string' is not assignable to type 'ViewType'.
+        />
+      ) : null}
     </Layout>
   );
+};
+
+// Static Site Generation feature for Next.js.
+export const getStaticProps: GetStaticProps = async () => {
+  const countries = await fetcher({ url: `${API_BASE_URL}/all` });
+  return { props: { countries } };
 };
 
 export default CountriesPage;
@@ -120,7 +148,7 @@ export default CountriesPage;
 //   const [countries, setCountries] = useState<any[] | null>(null);
 //
 //   async function fetchData() {
-//     const data = await fetcher(`${API_BASE_URL}/all`);
+//     const data = await fetcher(`${ API_BASE_URL } / all`);
 //     setCountries(data as any);
 //   }
 //
@@ -137,7 +165,7 @@ export default CountriesPage;
 //         <ul>
 //           {countries &&
 //             countries.map((c, idxC) => (
-//               <li key={`country-${c}-${idxC}`}>{c.name.common}</li>
+//               <li key={`country - ${ c } - ${ idxC }`}>{c.name.common}</li>
 //             ))}
 //         </ul>
 //       </section>
