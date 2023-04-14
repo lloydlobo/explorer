@@ -2,8 +2,7 @@ import Head from "next/head";
 import React from "react";
 import Navbar from "@/components/navbar";
 import { Banner } from "./ui/banner";
-
-const CURRENT_YEAR = new Date().getFullYear();
+import { Footer } from "./footer";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -35,7 +34,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
       <main className="container flex-1">{children}</main>
 
-      <footer className="container">{CURRENT_YEAR}</footer>
+      <Footer />
     </div>
   );
 }
