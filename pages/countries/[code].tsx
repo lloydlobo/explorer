@@ -12,6 +12,8 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import React from "react";
 import { ButtonLoading } from "@/components/button-loading";
+import { CountryDetail } from "@/components/country/country-detail";
+import { CountryBorders } from "@/components/country/country-borders";
 
 type CountryPageProps = {
   country: ICountry;
@@ -41,6 +43,7 @@ const CountryPage: NextPage<CountryPageProps> = ({
   const handleCountryClick = (alpha3Code: ICountry["alpha3Code"]) => {
     setSelectedCountry(alpha3Code);
   };
+  const displayedCountry = (cachedCountry as ICountry) ?? country;
 
   if (isLoading) return <ButtonLoading label="Please wait" />;
   // Display an error message if there was an error fetching the data.
@@ -48,52 +51,27 @@ const CountryPage: NextPage<CountryPageProps> = ({
     return <div>Error: {error.message}</div>;
   }
 
-  const displayedCountry = (cachedCountry as ICountry) ?? country;
-
   return (
     <Layout title={displayedCountry.name}>
-      <Button
-        variant={"default"}
-        onClick={() => router.back()}
-        className="capitalize"
-      >
-        go back
-      </Button>
-      <h1>{displayedCountry.name}</h1>
-      <Image
-        width={180}
-        height={140}
-        alt={`${displayedCountry.name} flag`}
-        src={displayedCountry.flag}
-      />
-      <p>Population: {displayedCountry.population}</p>
-      <p>Region: {displayedCountry.region}</p>
-      <p>Capital: {displayedCountry.capital}</p>
+      <div className="flex flex-col gap-4 py-4">
+        <Button
+          variant={"subtle"}
+          onClick={() => router.back()}
+          className="capitalize w-fit"
+        >
+          go back
+        </Button>
 
-      <div className="flex gap-2 max-w-prose">
-        <div className="font-bold">Borders</div>
+        <h1 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+          {displayedCountry.name}
+        </h1>
 
-        <div className="flex flex-wrap gap-2">
-          {borderCountries.length > 0 ? (
-            borderCountries.map((borderCountry, idx) => (
-              <Link
-                key={`border-${borderCountry.alpha3Code}-${idx}-${displayedCountry.name}`}
-                href={`/countries/${borderCountry.alpha3Code}`}
-                data-code={borderCountry.alpha3Code}
-                onClick={(e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) =>
-                  handleCountryClick(
-                    e.currentTarget.dataset.code ?? borderCountry.alpha3Code
-                  )
-                }
-                className="p-2 min-w-max text-xs text-center rounded-lg border"
-              >
-                {borderCountry.name}
-              </Link>
-            ))
-          ) : (
-            <>N.A.</>
-          )}
-        </div>
+        {/* HACK: coalescing undefined displayedCountry to country. Is it a ref thing? */}
+
+        <CountryDetail
+          country={displayedCountry ?? country}
+          borderCountries={borderCountries}
+        />
       </div>
     </Layout>
   );

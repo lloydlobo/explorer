@@ -43,6 +43,50 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// onSuccess = () => { },
+// onError = (err: Error) => { throw err; },
+export interface CopyToClipboardOptions {
+  text: string;
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+}
+/**
+ * Copies the specified text to the clipboard using the Clipboard API.
+ *
+ * @param text The text to copy to the clipboard.
+ * @param onSuccess An optional callback that will be called if the text is successfully copied to the clipboard.
+ * @param onError An optional callback that will be called if there is an error copying the text to the clipboard.
+ *                If not provided, any errors will be re-thrown.
+ *
+ * # Examples
+ *
+ * ```typescript
+ * copyToClipboard({
+ *   text: 'Hello, world!',
+ *   onSuccess: () => { console.log('Text copied successfully!'); },
+ *   onError: (error: Error) => { console.error('Failed to copy text:', error); }
+ * });
+ * ```
+ */
+export function copyToClipboard({
+  text,
+  onSuccess,
+  onError,
+}: CopyToClipboardOptions): void {
+  navigator.clipboard.writeText(text).then(onSuccess).catch(onError);
+}
+
+// export function copyToClipboard(options: CopyToClipboardOptions): void {
+//   const {
+//     text,
+//     onSuccess = () => { },
+//     onError = (error: Error) => {
+//       throw error;
+//     },
+//   } = options;
+//   navigator.clipboard.writeText(text).then(onSuccess).catch(onError);
+// }
+
 /**
  * `fetcher` fetches data from the given URL and returns it as JSON.
  *
@@ -76,12 +120,3 @@ export async function fetcher<T>(options: {
   }
 }
 
-// async function fetcherAxios(url: string): Promise<any> {
-//   try {
-//     const response = await axios.get(url);
-//     return response.data;
-//   } catch (err) {
-//     if (axios.isAxiosError(err)) { console.error("axios error", err);
-//     } else { console.error("unexpected error", err); }
-//   }
-// }
