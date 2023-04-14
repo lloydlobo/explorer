@@ -44,8 +44,8 @@ export interface CardProps extends VariantProps<typeof cardVariants> {
   imageUrl?: string;
   imageAlt?: string;
   linkHref?: string;
-  isActive?: boolean;
   paddingBody?: string;
+  isActive?: boolean;
   activeIndicator?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;

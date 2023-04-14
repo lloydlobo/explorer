@@ -1,6 +1,7 @@
 import Head from "next/head";
 import React from "react";
 import Navbar from "@/components/navbar";
+import { Banner } from "./ui/banner";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -22,6 +23,13 @@ export default function Layout({ children, title }: LayoutProps) {
       </Head>
 
       <header>
+        <div className="grid w-full">
+          <Banner
+            title={
+              "We have detected that you are from Earth. Parity Price: 50%"
+            }
+          />
+        </div>
         <Navbar />
       </header>
 
