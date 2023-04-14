@@ -48,8 +48,8 @@ export interface CardProps extends VariantProps<typeof cardVariants> {
   isActive?: boolean;
   activeIndicator?: React.ReactNode;
   action?: React.ReactNode;
-  className?: string;
   onClick?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  className?: string;
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(

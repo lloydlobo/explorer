@@ -16,7 +16,7 @@ export interface BannerProps extends VariantProps<typeof bannerVariants> {
 }
 
 const bannerVariants = cva(
-  "bg-slate-800 rounded-xs shadow-sm overflow-hidden",
+  "bg-slate-800 rounded-xs shadow-sm overflow-hidden p-2",
   {
     variants: {
       type: {
@@ -101,7 +101,7 @@ const Banner = React.forwardRef<HTMLDivElement, BannerProps>(
     const clickableArea = (
       <div
         // className="flex flex-col p-4 md:p-6"
-        className="grid grid-flow-col gap-4 items-center place-content-center p-4 md:p-6"
+        className="grid grid-flow-col gap-4 items-center place-content-center "
         onClick={(e: React.MouseEvent<HTMLDivElement, MouseEvent>) =>
           onClick && onClick(e)
         }

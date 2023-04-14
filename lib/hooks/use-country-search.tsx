@@ -10,6 +10,7 @@ interface SearchResults {
   searchResults: SearchResult[] | null;
   isLoading: boolean;
   error: Error | null;
+  query: string;
   setQuery: React.Dispatch<React.SetStateAction<string>>;
 }
 /**
@@ -45,5 +46,5 @@ export function useCountrySearch(): SearchResults {
 
   useDebounce({ value: debouncedQuery, delay: 500, callback: searchCountries });
 
-  return { searchResults, isLoading, error, setQuery };
+  return { searchResults, isLoading, error, query, setQuery };
 }
