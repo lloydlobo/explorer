@@ -24,6 +24,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
       <header className="sticky top-0 z-40 w-full bg-white border-b border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900">
         <Banner
+          // className="-z-50"
           title={"We have detected that you are from Earth. Parity Price: 50%"}
         />
 

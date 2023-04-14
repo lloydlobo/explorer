@@ -14,10 +14,13 @@ export function CountryList({
   setIsTable,
 }: CountryListProps) {
   return (
-    <div className="container mx-auto">
-      <button className="mb-4" onClick={() => setIsTable(!isTable)}>
+    <div
+    // className="container mx-auto"
+    >
+      <button className="mb-4 sr-only" onClick={() => setIsTable(!isTable)}>
         {isTable ? "Switch to Card View" : "Switch to Table View"}
       </button>
+
       {isTable ? (
         <CountryTable
           headerData={["Name", "Capital", "Population"]}

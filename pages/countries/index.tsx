@@ -1,21 +1,19 @@
+import { GetStaticProps, NextPage } from "next";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+
 import { useCountryStore } from "@/lib/state/country-store";
+import { useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
 import { API_BASE_URL } from "@/lib/constants";
-import Layout from "@/components/layout";
 import { cn, fetcher } from "@/lib/utils";
-import { GetStaticProps, NextPage } from "next";
+import { useAppStore } from "@/lib/state/app-store";
+import Layout from "@/components/layout";
 import SelectRegion from "@/components/select-region";
 import Search from "@/components/search";
-import { useToast } from "@/lib/hooks/ui/use-toast";
-import { useState } from "react";
 import { CountryList } from "@/components/country/country-list";
-
-// Static Site Generation feature for Next.js.
-export const getStaticProps: GetStaticProps = async () => {
-  const countries = await fetcher({ url: `${API_BASE_URL}/all` });
-  return { props: { countries } };
-};
+import { SelectView } from "@/components/select-view";
+import { ViewType } from "@/lib/enums";
 
 type CountriesPageProps = {
   countries: ICountry[];
@@ -29,38 +27,61 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   const { toast } = useToast();
   const [isTable, setIsTable] = useState(false);
 
-  // Get the selected country and region from the global store.
-  const { selectedRegion, setSelectedRegion } = useCountryStore();
+  const { selectedRegion, setSelectedRegion, selectedView, setSelectedView } =
+    useCountryStore();
+  const { isOpenBanner } = useAppStore();
 
-  // Fetch the list of countries using tanstack-query.
   const {
-    data: cachedCountries, // data from cache or server
+    data: cachedCountries, // use default value if there's no cached data yet.
     isLoading,
     error,
   } = useQuery<ICountry[]>({
     queryKey: ["countries"], // key for caching
     queryFn: () => fetcher({ url: `${API_BASE_URL}/all` }), // function to fetch data
     initialData: countries, // initial data from getStaticProps
-  });
+  }); // Fetch the list of countries using tanstack-query.
 
-  // Handle selection of a region.
   const handleRegionSelect = (value: string) => {
     setSelectedRegion(value);
     toast({
-      title: `Filter: Region to ${value}`,
+      title: `Filtering region to ${value}`,
       description: "",
     });
   };
 
-  // Display a loading spinner while data is being fetched.
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  const handleSelectView = (value: string) => {
+    switch (value as ViewType) {
+      case ViewType.Default:
+      case ViewType.Cards:
+        setIsTable(false);
+        break;
+      case ViewType.Table:
+        setIsTable(true);
+        break;
+      default:
+        // Handle invalid value
+        break;
+    }
+    toast({
+      title: `View set to ${value}`,
+      description: "",
+    });
+  };
 
-  // Display an error message if there was an error fetching the data.
-  if (error instanceof Error) {
-    return <div>Error: {error.message}</div>;
-  }
+  // // Handle selection of country list layout view.
+  // // default: card. options: default | card | table
+  // const handleSelectView = (value: string) => {
+  //   setSelectedView(value);
+  //   if (value === "default" || value === "cards") {
+  //     setIsTable(false);
+  //   } else if (value === "table") {
+  //     setIsTable(true);
+  //   }
+  //   toast({
+  //     title: `Viewing as ${value}`,
+  //     description: "",
+  //   });
+  // };
 
   // Filter the list of countries based on the selected region.
   const displayedCountries = (cachedCountries as ICountry[]) || countries;
@@ -71,19 +92,33 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
           (country) => country.region === selectedRegion
         );
 
-  const styleHeader = cn(
-    "sticky top-10 z-30 py-2 mb-2 w-full bg-white bg-opacity-90 rounded-b-md backdrop-blur-2xl border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900/80"
-  );
+  const styleHeader = cn(`${isOpenBanner ? "top-20 md:top-16" : "top-8"}
+    sticky py-4 mb-2 z-30 w-full bg-white bg-opacity-90 rounded-b-md backdrop-blur-2xl 
+    border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900/80`);
+
   const styleSearchBar = cn(
     "relative z-10 flex flex-1 flex-wrap items-start justify-between"
   );
 
+  // Display a loading spinner while data is being fetched.
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // Display an error message if there was an error fetching the data.
+  if (error instanceof Error) {
+    return <div>Error: {error.message}</div>;
+  }
   // Render the list of countries.
   return (
     <Layout title="Countries">
       <header className={styleHeader}>
         <div className={styleSearchBar}>
           <Search />
+          <SelectView
+            selectedView={selectedView}
+            handleSelectView={handleSelectView}
+          />
           <SelectRegion
             selectedRegion={selectedRegion}
             handleRegionSelect={handleRegionSelect}
@@ -102,13 +137,19 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   );
 };
 
+// Static Site Generation feature for Next.js.
+export const getStaticProps: GetStaticProps = async () => {
+  const countries = await fetcher({ url: `${API_BASE_URL}/all` });
+  return { props: { countries } };
+};
+
 export default CountriesPage;
 
 // export default function HomePage() {
 //   const [countries, setCountries] = useState<any[] | null>(null);
 //
 //   async function fetchData() {
-//     const data = await fetcher(`${API_BASE_URL}/all`);
+//     const data = await fetcher(`${ API_BASE_URL } / all`);
 //     setCountries(data as any);
 //   }
 //
@@ -125,61 +166,10 @@ export default CountriesPage;
 //         <ul>
 //           {countries &&
 //             countries.map((c, idxC) => (
-//               <li key={`country-${c}-${idxC}`}>{c.name.common}</li>
+//               <li key={`country - ${ c } - ${ idxC }`}>{c.name.common}</li>
 //             ))}
 //         </ul>
 //       </section>
 //     </>
 //   );
 // }
-//
-//
-//
-// {/* <section> */}
-// {/*   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"> */}
-// {/*     {filteredCountries && */}
-// {/*       filteredCountries.map((country, idxCountry) => { */}
-// {/*         // For development, debugging use less results for fast load times. */}
-// {/*         if (idxCountry < 300) { */}
-// {/*           return ( */}
-// {/*             <div key={`country-${country.alpha3Code}-${idxCountry}`}> */}
-// {/*               <Card */}
-// {/*                 padding="none" */}
-// {/*                 paddingBody="p-4" */}
-// {/*                 linkHref={`/countries/${country.alpha3Code}`} */}
-// {/*                 action={ */}
-// {/*                   <Button variant={"ghost"} className="ms-auto"> */}
-// {/*                     Click Me */}
-// {/*                   </Button> */}
-// {/*                 } */}
-// {/*                 onClick={(_e) => handleCountryClick(country.alpha3Code)} */}
-// {/*                 isActive={selectedCountry === country.alpha3Code} */}
-// {/*                 activeIndicator={ */}
-// {/*                   <div className="absolute -top-2 right-3"> */}
-// {/*                     <Indicator /> */}
-// {/*                   </div> */}
-// {/*                 } */}
-// {/*                 title={country.name} */}
-// {/*                 description={ */}
-// {/*                   <div className="grid stats"> */}
-// {/*                     <div className="flex gap-2 stat"> */}
-// {/*                       <div className="font-bold">Population</div> */}
-// {/*                       <div className="">{country.population}</div> */}
-// {/*                     </div> */}
-// {/*                     <div className="flex gap-2 stat"> */}
-// {/*                       <div className="font-bold">Capital</div> */}
-// {/*                       <div className="">{country.capital}</div> */}
-// {/*                     </div> */}
-// {/*                   </div> */}
-// {/*                 } */}
-// {/*                 imageUrl={country.flag} */}
-// {/*                 imageAlt={`Flag of ${country.name}`} */}
-// {/*               /> */}
-// {/*             </div> */}
-// {/*           ); */}
-// {/*         } else { */}
-// {/*           return null; */}
-// {/*         } */}
-// {/*       })} */}
-// {/* </div> */}
-// {/* </section> */}

@@ -4,11 +4,13 @@ import produce from "immer";
 interface AppState {
   selectedCountry: string | null;
   selectedRegion: string;
+  selectedView: string;
 }
 
 const appStateAtom = atom<AppState>({
   selectedCountry: null,
   selectedRegion: "all",
+  selectedView: "default",
 });
 
 /**
@@ -48,6 +50,13 @@ export function useCountryStore() {
       })
     );
 
+  const setSelectedView = (selectedView: string) =>
+    setAppState(
+      produce((draft) => {
+        draft.selectedView = selectedView;
+      })
+    );
+
   return {
     /**
      * `selectedCountry`: The currently selected country from the app state.
@@ -67,6 +76,8 @@ export function useCountryStore() {
      * and updates the `selectedRegion` value in the app state.
      */
     setSelectedRegion,
+    selectedView: appState.selectedView,
+    setSelectedView,
   };
 }
 
