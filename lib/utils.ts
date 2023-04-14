@@ -120,12 +120,3 @@ export async function fetcher<T>(options: {
   }
 }
 
-// async function fetcherAxios(url: string): Promise<any> {
-//   try {
-//     const response = await axios.get(url);
-//     return response.data;
-//   } catch (err) {
-//     if (axios.isAxiosError(err)) { console.error("axios error", err);
-//     } else { console.error("unexpected error", err); }
-//   }
-// }
