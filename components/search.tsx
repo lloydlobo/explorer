@@ -6,6 +6,13 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useEffect } from "react";
+import { useSearchCount } from "@/lib/hooks/use-search-count";
+import { SearchResult } from "@/lib/types/types-fuse-search-result";
+
+type SearchProps = {
+  setSearchCount?: React.Dispatch<React.SetStateAction<number>>;
+};
 
 /**
  * The `Search` component exports a React component that displays a search bar
@@ -34,10 +41,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
  * The aria-label attribute of the div element containing the search score rank
  * is used to provide an accessibility label for screen readers.
  */
-export default function Search() {
+export default function Search({ setSearchCount }: SearchProps) {
   const { setSelectedCountry } = useCountryStore();
+
   const { searchResults, isLoading, error, query, setQuery } =
     useCountrySearch();
+
+  useSearchCount({ searchResults: searchResults ?? []as SearchResult[], query, setSearchCount });
 
   function handleCountryClick(alpha3Code: ICountry["alpha3Code"]) {
     setSelectedCountry(alpha3Code);
@@ -59,16 +69,22 @@ export default function Search() {
 
   return (
     <form action="search">
+      <label htmlFor="search" className="sr-only">
+        Search countries:
+      </label>
       <Input
         type="search"
         placeholder="Search a country…"
         autoFocus={true}
         onChange={(e) => handleInputOnChange(e)}
-        className={cn("min-w-[60vw] md:min-w-[45vw]")}
+        className={cn(
+          "min-w-[60vw] md:min-w-[45vw]" +
+            "block! p-2.5 py-2 pl-10 w-full! text-sm text-gray-900 bg-white rounded-lg border border-gray-300 dark:placeholder-gray-400 dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        )}
       />
       {searchResults !== null &&
-        searchResults.length > 0 &&
-        query.length > 0 ? (
+      searchResults.length > 0 &&
+      query.length > 0 ? (
         <ScrollArea className="p-4 rounded-md border h-[200px] max-w-fit min-w-[350px]">
           <div className="grid">
             {searchResults.map((result, idxResult) => {

@@ -1,23 +1,26 @@
+import { useQuery } from "@tanstack/react-query";
 import { GetStaticProps, NextPage } from "next";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 
-import { useCountryStore } from "@/lib/state/country-store";
-import { useToast } from "@/lib/hooks/ui/use-toast";
-import { ICountry } from "@/lib/types/types-country";
-import { API_BASE_URL } from "@/lib/constants";
-import { cn, fetcher } from "@/lib/utils";
-import { useAppStore } from "@/lib/state/app-store";
-import Layout from "@/components/layout";
-import SelectRegion from "@/components/select-region";
-import Search from "@/components/search";
 import { CountryList } from "@/components/country/country-list";
+import Layout from "@/components/layout";
+import Search from "@/components/search";
+import SelectRegion from "@/components/select-region";
 import { SelectView } from "@/components/select-view";
-import { ViewType } from "@/lib/enums";
+import { API_BASE_URL } from "@/lib/constants";
+import { Region, ViewType } from "@/lib/enums";
+import { filterCountryRegion } from "@/lib/helpers";
+import { useToast } from "@/lib/hooks/ui/use-toast";
+import { useAppStore } from "@/lib/state/app-store";
+import { useCountryStore } from "@/lib/state/country-store";
+import { ICountry } from "@/lib/types/types-country";
+import { cn, fetcher } from "@/lib/utils";
+
 
 type CountriesPageProps = {
   countries: ICountry[];
 };
+
 /**
  * The `CountriesPage` function is a Next.js page that displays a list of countries
  * fetched from an external API. It uses the useQuery hook from the @tanstack/react-query
@@ -40,7 +43,7 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
     initialData: countries, // initial data from getStaticProps
   }); // Fetch the list of countries using tanstack-query.
 
-  const handleRegionSelect = (value: string) => {
+  const handleRegionSelect = (value: Region) => {
     setSelectedRegion(value);
     toast({
       title: `Filtering region to ${value}`,
@@ -58,7 +61,7 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
         setSelectedView(ViewType.Table);
         break;
       default:
-        // TODO: Handle invalid value.
+        // TODO: Handle invalid value/state.
         break;
     }
 
@@ -68,32 +71,15 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
     });
   };
 
-  // // Handle selection of country list layout view.
-  // // default: card. options: default | card | table
-  // const handleSelectView = (value: string) => {
-  //   setSelectedView(value);
-  //   if (value === "default" || value === "cards") {
-  //     setIsTable(false);
-  //   } else if (value === "table") {
-  //     setIsTable(true);
-  //   }
-  //   toast({
-  //     title: `Viewing as ${value}`,
-  //     description: "",
-  //   });
-  // };
-
   // Filter the list of countries based on the selected region.
   const displayedCountries = (cachedCountries as ICountry[]) || countries;
-  const filteredCountries: ICountry[] =
-    selectedRegion === "all"
-      ? displayedCountries
-      : displayedCountries?.filter(
-        (country) => country.region === selectedRegion
-      );
+  const filteredCountries: ICountry[] = filterCountryRegion({
+    selectedRegion,
+    displayedCountries,
+  });
 
   const styleHeader = cn(`${isOpenBanner ? "top-20 md:top-16" : "top-8"}
-    sticky py-4 mb-2 z-30 w-full bg-white bg-opacity-90 rounded-b-md backdrop-blur-2xl 
+    sticky py-4 mb-2 z-30 w-full bg-white bg-opacity-90 rounded-b-md backdrop-blur-2xl
     border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900/80`);
 
   const styleSearchBar = cn(

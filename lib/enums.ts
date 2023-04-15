@@ -8,3 +8,12 @@ export enum ViewType {
   Cards = "cards",
   Table = "table",
 }
+
+export enum Region {
+  All = "all",
+  Africa = "africa",
+  Americas = "americas",
+  Asia = "asia",
+  Europe = "europe",
+  Oceania = "oceania",
+}

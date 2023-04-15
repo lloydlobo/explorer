@@ -1,16 +1,16 @@
 import { atom, useAtom } from "jotai";
 import produce from "immer";
-import { ViewType } from "../enums";
+import { Region, ViewType } from "../enums";
 
 interface AppState {
   selectedCountry: string | null;
-  selectedRegion: string;
+  selectedRegion: Region;
   selectedView: ViewType;
 }
 
 const appStateAtom = atom<AppState>({
   selectedCountry: null,
-  selectedRegion: "all",
+  selectedRegion: Region.All,
   selectedView: ViewType.Cards,
 });
 
@@ -46,7 +46,7 @@ export function useCountryStore() {
       })
     );
 
-  const setSelectedRegion = (selectedRegion: string) =>
+  const setSelectedRegion = (selectedRegion: Region) =>
     setAppState(
       produce((draft) => {
         draft.selectedRegion = selectedRegion;

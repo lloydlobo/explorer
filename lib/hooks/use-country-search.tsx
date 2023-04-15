@@ -1,10 +1,8 @@
-import { useState } from "react";
+import { SearchResult } from "@/lib/types/types-fuse-search-result";
 import Fuse from "fuse.js";
+import { useState } from "react";
 import { useDebounce } from "./use-debounce";
 import { useQueryAllCountries } from "./use-query-all-countries";
-import { ICountry } from "../types/types-country";
-
-interface SearchResult extends Fuse.FuseResult<ICountry> { }
 
 interface SearchResults {
   searchResults: SearchResult[] | null;
