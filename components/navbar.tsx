@@ -36,12 +36,19 @@ export default function Navbar() {
             </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
+            <Link href="/about" legacyBehavior passHref>
+              <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                About
+              </NavigationMenuLink>
+            </Link>
+          </NavigationMenuItem>
+          {/* <NavigationMenuItem>
             <NavigationMenuTrigger>More</NavigationMenuTrigger>
             <NavigationMenuContent>
               <NavigationMenuLink>About</NavigationMenuLink>
               <NavigationMenuLink>Docs</NavigationMenuLink>
             </NavigationMenuContent>
-          </NavigationMenuItem>
+          </NavigationMenuItem> */}
         </NavigationMenuList>
       </NavigationMenu>
 

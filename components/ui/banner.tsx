@@ -3,6 +3,7 @@ import { VariantProps, cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { useAppStore } from "@/lib/state/app-store";
+import Image from "next/image";
 
 export interface BannerProps extends VariantProps<typeof bannerVariants> {
   title?: React.ReactNode;
@@ -52,7 +53,7 @@ const Banner = React.forwardRef<HTMLDivElement, BannerProps>(
 
     const image = imageUrl ? (
       <div>
-        <img src={imageUrl} alt={imageAlt ?? ""} />
+        <Image src={imageUrl} alt={imageAlt ?? ""} width={16} height={16} />
       </div>
     ) : null;
 

@@ -14,7 +14,7 @@ export default function Layout({ children, title }: LayoutProps) {
     <div className="flex flex-col min-h-screen">
       <Head>
         <title>
-          {title !== "Lloyd Lobo" ? `${title} • Lloyd Lobo` : title}
+          {title !== "Explorer" ? `${title} • Explorer` : title}
         </title>
         <meta charSet="utf-8" />
         <link rel="shortcut icon" href="/favicon.ico" />

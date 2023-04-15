@@ -1,9 +1,13 @@
+import { Toaster } from "@/components/ui/toaster";
 import "@/styles/globals.css";
-import type { AppProps } from "next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "jotai";
-import { Toaster } from "@/components/ui/toaster";
+import type { AppProps } from "next/app";
+import { Inter } from 'next/font/google';
+
+// If loading a variable font, you don't need to specify the font weight
+const inter = Inter({ subsets: ["latin"] });
 
 const queryClient = new QueryClient();
 
@@ -18,6 +22,13 @@ export default function App({ Component, pageProps }: AppProps) {
         content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover"
         // content="minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, user-scalable=no, viewport-fit=cover"
       />
+
+      <style jsx global>{`
+        html {
+          font-family: ${inter.style.fontFamily};
+        }
+      `}</style>
+
       <QueryClientProvider client={queryClient}>
         <Provider>
           <Component {...pageProps} />
