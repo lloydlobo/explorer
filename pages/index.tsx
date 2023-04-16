@@ -8,11 +8,14 @@ import { API_BASE_URL } from "@/lib/constants";
 import { useCountrySearch } from "@/lib/hooks/use-country-search";
 import { useSearchCount } from "@/lib/hooks/use-search-count";
 import { useCountryStore } from "@/lib/state/country-store";
+import { gameGuessStateAtom, gameStateAtom } from "@/lib/state/game-store";
 import { ICountry } from "@/lib/types/types-country";
 import { SearchResult } from "@/lib/types/types-fuse-search-result";
 import { cn, fetcher } from "@/lib/utils";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import { useQuery } from "@tanstack/react-query";
+import produce from "immer";
+import { useAtom } from "jotai";
 import { SearchIcon } from "lucide-react";
 import { GetStaticProps, NextPage } from "next";
 import Image from "next/image";
@@ -37,6 +40,9 @@ type HomePageProps = {
 const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
   const [guessCount, setGuessCount] = useState(0);
   const { selectedCountry } = useCountryStore();
+  const [gameState, setGameState] = useAtom(gameStateAtom);
+  const [gameGuessState, setGameGuessState] = useAtom(gameGuessStateAtom);
+
   const [randomCountry, setRandomCountry] = useState<null | ICountry>(null);
   const [cache, setCache] = useState<string[]>([]);
 
@@ -55,13 +61,21 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
       const r = rand(cachedCountries?.length ?? 2);
       const randCountry = cachedCountries[r];
       setRandomCountry(randCountry);
+      setGameGuessState(
+        produce((draft) => {
+          draft.answer = randCountry;
+        })
+      );
     }
   }, [cachedCountries]);
 
   useEffect(() => {
-    if (selectedCountry === randomCountry?.alpha3Code) {
+    if (selectedCountry === gameGuessState.answer?.alpha3Code) {
       alert("You guessed right!");
     }
+    // if (selectedCountry === randomCountry?.alpha3Code) {
+    //   alert("You guessed right!");
+    // }
 
     // setCache((prev) => {
     //   if (prev[cache.length] !== selectedCountry && selectedCountry !== null) {
@@ -118,7 +132,7 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
                 alt={randomCountry?.name ?? ""}
               />
             </AspectRatio>
-          {randomCountry?.name ?? ""}
+            {randomCountry?.name ?? ""}
           </div>
         </div>
 
@@ -134,10 +148,13 @@ export default HomePage;
 
 export function HeroSearchBar() {
   const [guess, setGuess] = useState<ICountry["alpha3Code"]>("");
-  const [guesses, setGuesses] = useState([] as (typeof guess)[]);
+  const [guesses, setGuesses] = useState([] as typeof guess[]);
 
   const [searchCount, setSearchCount] = useState<number>(0);
   const { setSelectedCountry } = useCountryStore();
+
+  const [gameState, setGameState] = useAtom(gameStateAtom);
+  const [gameGuessState, setGameGuessState] = useAtom(gameGuessStateAtom);
 
   const { searchResults, isLoading, error, query, setQuery } =
     useCountrySearch();
