@@ -91,6 +91,7 @@ type GuessProps = {
 
 function AccordianGuesses({ guesses, guessLimit }: Props) {
   const [g, setG] = useState(guesses);
+  console.log(g);
   // alert(guessLimit);
   useEffect(() => {
     // alert(JSON.stringify(guesses));
@@ -98,19 +99,19 @@ function AccordianGuesses({ guesses, guessLimit }: Props) {
     return () => {};
   }, [guesses]);
   return (
-      <Accordion type="single" collapsible>
-        {Array.from(Array(guessLimit)).map((count, idxCount) => (
-          <AccordionItem
-            key={`${count}-${idxCount}`}
-            value={guesses.at(idxCount) ?? ""}
-          >
-            <AccordionTrigger>{guesses.at(idxCount)}</AccordionTrigger>
-            <AccordionContent>
-              <AccordianGuess guess={guesses.at(idxCount) ?? ""} />
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
+    <Accordion type="single" collapsible>
+      {Array.from(Array(guessLimit)).map((count, idxCount) => (
+        <AccordionItem
+          key={`${count}-${idxCount}`}
+          value={guesses.at(idxCount) ?? ""}
+        >
+          <AccordionTrigger>{guesses.at(idxCount)}</AccordionTrigger>
+          <AccordionContent>
+            <AccordianGuess guess={guesses.at(idxCount) ?? ""} />
+          </AccordionContent>
+        </AccordionItem>
+      ))}
+    </Accordion>
   );
 }
 
