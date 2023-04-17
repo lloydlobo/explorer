@@ -16,6 +16,8 @@ import {
   ChangeEvent,
   FocusEvent,
   FormEvent,
+  KeyboardEvent,
+  MouseEvent,
   useEffect,
   useRef,
   useState,
@@ -185,6 +187,7 @@ function FlagGuessingGame(): JSX.Element {
   }
 
   function handleSelectChange(event: ChangeEvent<HTMLSelectElement>) {
+    event.preventDefault();
     const selectedOptions = Array.from(
       event?.target.selectedOptions,
       (option) => option.value
@@ -207,6 +210,60 @@ function FlagGuessingGame(): JSX.Element {
       return;
     }
     setGuess(c);
+  }
+
+  function handleSelectKeyPress(event: KeyboardEvent<HTMLSelectElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const alpha3Code = selectRef.current?.value;
+
+      if (!gameState.countries) {
+        toast({
+          title: ` Country list is empty.`,
+        });
+        return;
+      }
+      const c = gameState.countries.find(
+        (country) => country.alpha3Code === alpha3Code
+      )?.name;
+      if (!c) {
+        toast({
+          title: `Cannot find country with alpha3Code: ${alpha3Code}`,
+        });
+        return;
+      }
+      setGuess(c);
+      toast({
+        title: `Guessing ${c}`,
+      });
+      checkGuessCountry();
+      setQuery("");
+      setGuess("");
+    } else {
+      return;
+    }
+  }
+
+  function handleOptionClick(
+    event: MouseEvent<HTMLOptionElement, globalThis.MouseEvent>
+  ) {
+    event.preventDefault();
+    const alpha3Code = event.currentTarget.value;
+    const c = gameState.countries.find(
+      (country) => country.alpha3Code === alpha3Code
+    )?.name;
+
+    if (!c) {
+      toast({
+        title: `Cannot find country with alpha3Code: ${alpha3Code}`,
+      });
+      return;
+    }
+
+    setGuess(c);
+    checkGuessCountry();
+    setQuery("");
+    setGuess("");
   }
 
   function handleSelectCountryInputOptionOnChange(
@@ -298,6 +355,7 @@ function FlagGuessingGame(): JSX.Element {
             multiple={true}
             ref={selectRef}
             onChange={(e) => handleSelectChange(e)}
+            onKeyDown={(e) => handleSelectKeyPress(e)}
             // autoFocus={true}
             // open={true}
             // multiple
@@ -309,7 +367,10 @@ function FlagGuessingGame(): JSX.Element {
                 return score >= 0 && score <= 400 && result.score;
               })
               .map((result, index) => (
-                <option value={result.item.alpha3Code}>
+                <option
+                  value={result.item.alpha3Code}
+                  onClick={(e) => handleOptionClick(e)}
+                >
                   {result.item.name}
                 </option>
               ))}
