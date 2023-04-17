@@ -22,6 +22,7 @@ enum GameState {
   Running,
   Won,
   Lost,
+  Canceled,
 }
 
 /** `gameStateAtom` is the global state of the game. */
@@ -33,6 +34,20 @@ const gameStateAtom = atom({
   guessedCountries: new Set<string>(),
   state: GameState.Running,
 });
+
+// TODO: Add local support:
+// useEffect(() => {
+//   const fetchData = async () => {
+//     const { countries } = await import("@/lib/data/countries.json");
+//     setGameState((state) =>
+//       produce(state, (draft) => {
+//         draft.countries = countries;
+//       })
+//     );
+//   };
+//
+//   fetchData();
+// }, []);
 
 /** `FlagGuessingGame` component renders the flag guessing game.
  *
@@ -54,7 +69,6 @@ function FlagGuessingGame(): JSX.Element {
       gameState.countries[
         Math.floor(Math.random() * gameState.countries.length)
       ];
-    console.log(randomCountry);
     setGameState(
       produce((draft) => {
         draft.selectedCountry = randomCountry;
@@ -81,9 +95,7 @@ function FlagGuessingGame(): JSX.Element {
         })
       );
 
-      toast({
-        title: "You won!",
-      });
+      toast({ title: "You won!" });
 
       resetGame();
     } else {
@@ -99,9 +111,7 @@ function FlagGuessingGame(): JSX.Element {
           })
         );
 
-        toast({
-          title: "You lost!",
-        });
+        toast({ title: "You lost!" });
 
         resetGame();
       } else {
@@ -113,23 +123,24 @@ function FlagGuessingGame(): JSX.Element {
         );
       }
     }
+
     setGuess(""); // Reset the guess.
   } // end of selectRandomCountry.
 
   // Reset the game.
   function resetGame(timeout: number = 5000) {
-    // toast({ title: "Game reset", duration: 1000, // onClick: () => resetGame(), }); // dismiss("DISMISS_TOAST");
     setTimeout(() => {
       toast({ title: "Resetting game…", duration: 4000 });
       setGameState(
         produce((draft) => {
-          draft.triesRemaining = 6;
+          draft.triesRemaining = MAX_TRIES;
           draft.guessedCountries = new Set<string>();
           draft.state = GameState.Running;
         })
       );
 
       selectRandomCountry();
+
       toast({ title: "Game reset", duration: 1000 });
     }, timeout);
   }
@@ -145,15 +156,11 @@ function FlagGuessingGame(): JSX.Element {
 
   const randomCountry = gameState.selectedCountry;
 
-  const styleInput = `
-              min-w-[60vw] md:min-w-[45vw] block!
-              p-2.5 py-2 pl-10 w-full!
+  const styleInput = `min-w-[60vw] md:min-w-[45vw] block! p-2.5 py-2 pl-10 w-full!
               text-sm text-gray-900 bg-white rounded-lg
               border border-gray-300
-              dark:placeholder-gray-400 dark:text-white
-              dark:bg-gray-700 dark:border-gray-600
-              focus:border-blue-500 focus:ring-blue-500
-              dark:focus:ring-blue-500 dark:focus:border-blue-500
+              dark:placeholder-gray-400 dark:text-white dark:bg-gray-700 dark:border-gray-600
+              focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500
               `;
 
   function handleInputOnChange(e: ChangeEvent<HTMLInputElement>) {
@@ -170,157 +177,165 @@ function FlagGuessingGame(): JSX.Element {
   }
 
   return (
-    <>
-      <>
-        <section className="grid gap-4 justify-center">
-          <Heading
-            color={"default"}
-            fontWeight={"bold"}
-            variant="h1"
-            className="flex justify-center uppercase"
+    <section className="grid gap-4 justify-center">
+      <Heading
+        color={"default"}
+        fontWeight={"bold"}
+        variant="h1"
+        className="flex text-2xl lg:text-4xl justify-center uppercase"
+      >
+        Guess the country
+      </Heading>
+
+      <div className="py-2 mx-auto w-[250px]">
+        <AspectRatio ratio={16 / 9}>
+          <Image
+            // fill
+            width={250}
+            height={250}
+            src={
+              randomCountry?.flag ||
+              (randomCountry?.flags && randomCountry?.flags.png) ||
+              ""
+            }
+            alt={randomCountry?.name ?? ""}
+            className={cn(
+              `rounded-md shadow w-[250px] aspect-video object-cover`
+            )}
+          />
+        </AspectRatio>
+      </div>
+
+      <div className="flex text-xs space-x-4 justify-center">
+        <p>Tries Remaining: {triesRemaining}</p>
+        <p>Guessed Countries: {guessedCountries.join(", ")}</p>
+      </div>
+
+      <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
+        <div className="grid">
+          <Button
+            className="rounded-none"
+            variant="default"
+            onClick={checkGuessCountry}
           >
-            Guess the country
-          </Heading>
+            Guess
+          </Button>
+          <Button
+            className="rounded-none"
+            variant="outline"
+            onClick={selectRandomCountry}
+          >
+            Skip
+          </Button>
+        </div>
 
-          <div className="py-2">
-            <div className="mx-auto w-[250px]">
-              <AspectRatio ratio={16 / 9}>
-                <Image
-                  // fill
-                  width={250}
-                  height={250}
-                  src={
-                    randomCountry?.flag ||
-                    (randomCountry?.flags && randomCountry?.flags.png) ||
-                    ""
-                  }
-                  alt={randomCountry?.name ?? ""}
-                  className={cn(
-                    `rounded-md shadow w-[250px] aspect-video object-cover`
-                  )}
-                />
-              </AspectRatio>
-            </div>
+        <div className="relative">
+          <div className="flex absolute top-0! inset-y-0 left-0 items-center pl-3 pointer-events-none">
+            <SearchIcon
+              aria-hidden="true"
+              className="w-5 h-5 text-gray-500 dark:text-gray-400"
+            />
           </div>
 
-          <div className="flex text-xs space-x-4 justify-center">
-            <p>Tries Remaining: {triesRemaining}</p>
-            <p>Guessed Countries: {guessedCountries.join(", ")}</p>
-          </div>
-
-          <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
-            <div className="grid">
-              <Button
-                className="rounded-none"
-                variant="default"
-                onClick={checkGuessCountry}
-              >
-                Guess
-              </Button>
-              <Button
-                className="rounded-none"
-                variant="outline"
-                onClick={selectRandomCountry}
-              >
-                Skip
-              </Button>
-            </div>
-            <div className="relative">
-              <div className="flex absolute top-0! inset-y-0 left-0 items-center pl-3 pointer-events-none">
-                <SearchIcon
-                  aria-hidden="true"
-                  className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                />
-              </div>
-              <Input
-                type="search"
-                placeholder="Search a country…"
-                value={guess}
-                autoFocus={true}
-                onChange={handleInputOnChange}
-                onSubmit={(e) => {
-                  if (gameState && gameState.countries) {
-                    const found = gameState.countries.find(
-                      (c) =>
-                        c.name.toLowerCase() ===
-                        e.currentTarget.value.trim().toLowerCase()
-                    );
-                    if (found) handleCountryOnClick(found);
-                  }
-                }}
-                className={cn(styleInput, "rounded-none")}
-                disabled={
-                  gameState.state === GameState.Won ||
-                  gameState.state === GameState.Lost ||
-                  gameState.triesRemaining === 0 ||
-                  gameState.selectedCountry === null
+          <Input
+            value={guess}
+            onChange={handleInputOnChange}
+            className={cn(styleInput, "rounded-none")}
+            placeholder="Search a country…"
+            autoFocus={true}
+            type="search"
+            onSubmit={(e) => {
+              if (gameState && gameState.countries) {
+                const found = gameState.countries.find((c) => {
+                  return (
+                    c.name.toLowerCase() ===
+                    e.currentTarget.value.trim().toLowerCase()
+                  );
+                });
+                if (found) {
+                  handleCountryOnClick(found);
                 }
-              />
-            </div>
-            <div className="grid h-[300px] gap-1 overflow-y-auto">
-              <>
-                <div className="grid gap-0 w-full text-sm rounded-md max-h-[300px] overflow-clip">
-                  <div className="guesses">
-                    {guessedCountries.map((country, idx) => {
-                      return (
-                        <div
-                          key={`country-guess-${country}-${idx}`}
-                          className="guess"
-                        >
-                          {country}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </>
-              {searchResults &&
-                searchResults.map((result, idxResult) => {
-                  const country = result.item;
-                  const score = result.score ?? -1;
-                  if (score * 100 <= 4 && score * 100 >= 0) {
-                    return (
-                      <Button
-                        key={`country-search-fuse-${country.alpha3Code}-${idxResult}`}
-                        data-code={country.alpha3Code}
-                        variant={"subtle"}
-                        size={"sm"}
-                        className="flex justify-start"
-                        onClick={(
-                          e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-                        ) => {
-                          e.preventDefault();
-                          handleCountryOnClick(country);
-                        }}
-                      >
-                        {country.name}
-                        <div aria-label="search score rank" className="sr-only">
-                          {(score * 100).toFixed(0)}
-                        </div>
-                      </Button>
-                    );
-                  } else {
-                    return null;
-                  }
-                })}
-            </div>
+              }
+            }}
+            disabled={
+              !gameState.selectedCountry ||
+              triesRemaining === 0 ||
+              [GameState.Canceled, GameState.Won, GameState.Lost].includes(
+                gameState.state
+              )
+            }
+          />
+        </div>
+
+        <div className="grid h-[300px] gap-1 overflow-y-auto">
+          <div className="grid gap-0 w-full text-sm rounded-md max-h-[300px] overflow-clip">
+            {guessedCountries.map((country, idx) => (
+              <div key={`country-guess-${country}-${idx}`} className="guess">
+                {country}
+              </div>
+            ))}
           </div>
-        </section>
-      </>
+
+          {searchResults?.map((result, idxResult) => {
+            const country = result.item;
+            const score = result.score ?? -1;
+            if (score * 100 <= 4 && score * 100 >= 0) {
+              return (
+                <Button
+                  key={`country-search-fuse-${country.alpha3Code}-${idxResult}`}
+                  data-code={country.alpha3Code}
+                  variant={"subtle"}
+                  size={"sm"}
+                  className="flex justify-start"
+                  onClick={(
+                    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+                  ) => {
+                    e.preventDefault();
+                    handleCountryOnClick(country);
+                  }}
+                >
+                  {country.name}
+                  <div aria-label="search score rank" className="sr-only">
+                    {(score * 100).toFixed(0)}
+                  </div>
+                </Button>
+              );
+            } else {
+              return null;
+            }
+          })}
+        </div>
+      </div>
       <>
-        {state === GameState.Won && <h2 className="sr-only">You won!</h2>}
-        {state === GameState.Lost && <h2 className="sr-only">You lost!</h2>}
+        <>
+          {state === GameState.Won && <h2 className="sr-only">You won!</h2>}
+          {state === GameState.Lost && <h2 className="sr-only">You lost!</h2>}
+        </>
+        {/* debug only*/}
+        <pre className="hidden!">
+          {gameState.selectedCountry?.name}
+          <br />
+          {JSON.stringify(guess, null, 2)}
+          <br />
+          <div className="hidden">{JSON.stringify(gameState, null, 2)}</div>
+        </pre>{" "}
       </>
-      {/* debug only*/}
-      <pre className="hidden">
-        {gameState.selectedCountry?.name}
-        <br />
-        {JSON.stringify(guess, null, 2)}
-        <br />
-        {JSON.stringify(gameState, null, 2)}
-      </pre>{" "}
-    </>
+    </section>
   );
 }
 
 export { FlagGuessingGame, gameStateAtom, GameState };
+
+// function endGame(hasWon: boolean) {
+// state.update((draft) => {
+// draft.state = GameState.Ended;
+// draft.hasWon = hasWon;
+// });
+// toast({
+// title: "Game Over",
+// message: hasWon ? "Congratulations, you guessed the country!" : The country was ${currentCountry},
+// duration: 5000,
+// position: "bottom-right",
+// variant: hasWon ? "success" : "error",
+// });
+// }
