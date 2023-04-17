@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-accordion": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.0.2",
     "@radix-ui/react-navigation-menu": "^1.1.2",
     "@radix-ui/react-scroll-area": "^1.0.3",
@@ -30,6 +31,7 @@
     "immer": "^9.0.21",
     "jotai": "^2.0.4",
     "lucide-react": "^0.144.0",
+    "nanoid": "^4.0.2",
     "next": "13.3.0",
     "next-pwa": "^5.6.0",
     "postcss": "8.4.21",

@@ -62,6 +62,7 @@ const Heading = React.forwardRef<HTMLHeadingElement, HeadingProps>(
 
 Heading.displayName = "Heading";
 
+export type { HeadingProps };
 export { Heading, headingVariants };
 
 export function TypographyP() {

@@ -22,7 +22,7 @@ interface AppState {
 }
 
 const appStateAtom = atom<AppState>({
-  isOpenBanner: true,
+  isOpenBanner: false,
 });
 
 /**
