@@ -4,13 +4,22 @@ import { Heading } from "@/components/ui/typography";
 import { useToast } from "@/lib/hooks/ui/use-toast";
 import { useCountrySearch } from "@/lib/hooks/use-country-search";
 import { ICountry } from "@/lib/types/types-country";
+import { SearchResult } from "@/lib/types/types-fuse-search-result";
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import produce from "immer";
 import { atom, useAtom } from "jotai";
 import { SearchIcon } from "lucide-react";
 import Image from "next/image";
-import { ChangeEvent, useEffect, useState } from "react";
+import { encode } from "punycode";
+import {
+  ChangeEvent,
+  FocusEvent,
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { AccordianGuesses } from "./accordion-guesses";
 
 const MAX_TRIES = 6;
@@ -31,7 +40,7 @@ const gameStateAtom = atom({
   countries: [] as ICountry[],
   triesRemaining: MAX_TRIES,
   selectedCountry: {} as ICountry | null,
-  guessedCountries: new Set<string>(),
+  guessedCountries: new Set<ICountry["alpha3Code"]>(), // or just collect country.
   state: GameState.Running,
 });
 
@@ -39,11 +48,7 @@ const gameStateAtom = atom({
 // useEffect(() => {
 //   const fetchData = async () => {
 //     const { countries } = await import("@/lib/data/countries.json");
-//     setGameState((state) =>
-//       produce(state, (draft) => {
-//         draft.countries = countries;
-//       })
-//     );
+//     setGameState((state) => produce(state, (draft) => { draft.countries = countries; }));
 //   };
 //
 //   fetchData();
@@ -54,16 +59,25 @@ const gameStateAtom = atom({
  * @returns {JSX.Element}
  */
 function FlagGuessingGame(): JSX.Element {
+  const [guess, setGuess] = useState<ICountry["alpha3Code"]>("");
+  const selectRef = useRef<null | HTMLSelectElement>(null);
+
   const { toast, dismiss } = useToast();
 
   const [gameState, setGameState] = useAtom(gameStateAtom);
-  const [guess, setGuess] = useState("");
 
   const { searchResults, isLoading, error, query, setQuery } =
     useCountrySearch();
 
+  // useEffect(() => {
+  //   const shouldFocus = false; // Set to true to test.
+  //   if ( shouldFocus && searchResults !== null && query.length > 1 && searchResults.length > 0 && selectRef.current) {
+  //     selectRef.current.focus();
+  //     selectRef.current.click();
+  //   }
+  // }, [searchResults]);
+
   // Select a random countryfrom the list of countries.
-  // The state must be manually updated before this component is rendered.
   function selectRandomCountry() {
     const randomCountry =
       gameState.countries[
@@ -74,7 +88,7 @@ function FlagGuessingGame(): JSX.Element {
         draft.selectedCountry = randomCountry;
       })
     );
-  }
+  } // NOTE: The state must be manually updated before this component is rendered.
 
   // Check if the guessed country matches the selected country.
   function checkGuessCountry() {
@@ -99,6 +113,7 @@ function FlagGuessingGame(): JSX.Element {
 
       resetGame();
     } else {
+      // Get an instance of guessedCountries and allocate/add new guessedCountry.
       const guessedCountrySet = new Set<string>(gameState.guessedCountries);
       guessedCountrySet.add(guessedCountry);
       const triesRemaining = gameState.triesRemaining - 1;
@@ -165,16 +180,57 @@ function FlagGuessingGame(): JSX.Element {
 
   function handleInputOnChange(e: ChangeEvent<HTMLInputElement>) {
     e.preventDefault();
-    setQuery(e.target.value);
+    setQuery(e.currentTarget.value);
     setGuess(e.target.value);
   }
 
-  function handleCountryOnClick(country: ICountry) {
-    setQuery(country.name);
-    setGuess(country.name);
-    checkGuessCountry();
-    // setQuery(""); // Clear the search query.
+  function handleSelectChange(event: ChangeEvent<HTMLSelectElement>) {
+    const selectedOptions = Array.from(
+      event?.target.selectedOptions,
+      (option) => option.value
+    );
+    const alpha3Code = selectedOptions[0];
+
+    if (!gameState.countries) {
+      toast({
+        title: ` Country list is empty.`,
+      });
+      return;
+    }
+    const c = gameState.countries.find(
+      (country) => country.alpha3Code === alpha3Code
+    )?.name;
+    if (!c) {
+      toast({
+        title: `Cannot find country with alpha3Code: ${alpha3Code}`,
+      });
+      return;
+    }
+    setGuess(c);
   }
+
+  function handleSelectCountryInputOptionOnChange(
+    e: ChangeEvent<HTMLInputElement>
+  ) {
+    e.preventDefault();
+    const value = e.target.value;
+    toast({ title: value });
+    setQuery(e.currentTarget.value);
+    setGuess(e.target.value);
+  }
+
+  function handleInputOnBlur(e: FocusEvent<HTMLInputElement, Element>) {
+    e.preventDefault();
+    const value = e.target.value;
+    toast({ title: `onBlur: ${value}` });
+  }
+
+  const { flag, flags } = randomCountry || gameState.selectedCountry || {};
+  const imageUrl =
+    flag ||
+    flags?.png ||
+    "/assets/placeholders/flag.jpg" ||
+    require("../public/assets/placeholders/flag.jpg");
 
   return (
     <section className="grid gap-4 justify-center">
@@ -188,20 +244,15 @@ function FlagGuessingGame(): JSX.Element {
       </Heading>
 
       <div className="py-2 mx-auto w-[250px]">
-        <AspectRatio ratio={16 / 9}>
-          <Image
-            // fill
+        <AspectRatio ratio={3 / 2}>
+          {/* Flag ratio is commonly 3/2 or 2/1 :
+          https://en.wikipedia.org/wiki/List_of_aspect_ratios_of_national_flags  */}
+          <Image // fill
             width={250}
             height={250}
-            src={
-              randomCountry?.flag ||
-              (randomCountry?.flags && randomCountry?.flags.png) ||
-              ""
-            }
-            alt={randomCountry?.name ?? ""}
-            className={cn(
-              `rounded-md shadow w-[250px] aspect-video object-cover`
-            )}
+            src={imageUrl}
+            alt={randomCountry?.name ?? "Flag"}
+            className={`rounded-md shadow w-[250px] aspect-video object-cover`}
           />
         </AspectRatio>
       </div>
@@ -214,16 +265,16 @@ function FlagGuessingGame(): JSX.Element {
       <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
         <div className="grid">
           <Button
+            onClick={checkGuessCountry}
             className="rounded-none"
             variant="default"
-            onClick={checkGuessCountry}
           >
             Guess
           </Button>
           <Button
+            onClick={selectRandomCountry}
             className="rounded-none"
             variant="outline"
-            onClick={selectRandomCountry}
           >
             Skip
           </Button>
@@ -236,27 +287,52 @@ function FlagGuessingGame(): JSX.Element {
               className="w-5 h-5 text-gray-500 dark:text-gray-400"
             />
           </div>
-
           <Input
             value={guess}
             onChange={handleInputOnChange}
-            className={cn(styleInput, "rounded-none")}
             placeholder="Search a country…"
-            autoFocus={true}
             type="search"
-            onSubmit={(e) => {
-              if (gameState && gameState.countries) {
-                const found = gameState.countries.find((c) => {
-                  return (
-                    c.name.toLowerCase() ===
-                    e.currentTarget.value.trim().toLowerCase()
-                  );
-                });
-                if (found) {
-                  handleCountryOnClick(found);
-                }
-              }
-            }}
+            className={cn(styleInput, "rounded-none")}
+          />
+          <select
+            multiple={true}
+            ref={selectRef}
+            onChange={(e) => handleSelectChange(e)}
+            // autoFocus={true}
+            // open={true}
+            // multiple
+            className="absolute w-full"
+          >
+            {searchResults
+              ?.filter((result) => {
+                const score = (result.score ?? -1) * 100;
+                return score >= 0 && score <= 400 && result.score;
+              })
+              .map((result, index) => (
+                <option value={result.item.alpha3Code}>
+                  {result.item.name}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        <div className="relative hidden">
+          <div className="flex absolute top-0! inset-y-0 left-0 items-center pl-3 pointer-events-none">
+            <SearchIcon
+              aria-hidden="true"
+              className="w-5 h-5 text-gray-500 dark:text-gray-400"
+            />
+          </div>
+
+          <Input
+            value={guess}
+            onChange={(e) => handleSelectCountryInputOptionOnChange(e)}
+            autoFocus={true}
+            onBlur={(e) => handleInputOnBlur(e)}
+            placeholder="Search a country…"
+            type="search"
+            className={cn(styleInput, "rounded-none")}
+            list="countries"
             disabled={
               !gameState.selectedCountry ||
               triesRemaining === 0 ||
@@ -267,60 +343,70 @@ function FlagGuessingGame(): JSX.Element {
           />
         </div>
 
-        <div className="grid h-[300px] gap-1 overflow-y-auto">
-          <div className="grid gap-0 w-full text-sm rounded-md max-h-[300px] overflow-clip">
-            {guessedCountries.map((country, idx) => (
-              <div key={`country-guess-${country}-${idx}`} className="guess">
-                {country}
-              </div>
-            ))}
-          </div>
-
-          {searchResults?.map((result, idxResult) => {
-            const country = result.item;
-            const score = result.score ?? -1;
-            if (score * 100 <= 4 && score * 100 >= 0) {
-              return (
-                <Button
-                  key={`country-search-fuse-${country.alpha3Code}-${idxResult}`}
-                  data-code={country.alpha3Code}
-                  variant={"subtle"}
-                  size={"sm"}
-                  className="flex justify-start"
-                  onClick={(
-                    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
-                  ) => {
-                    e.preventDefault();
-                    handleCountryOnClick(country);
-                  }}
-                >
-                  {country.name}
-                  <div aria-label="search score rank" className="sr-only">
-                    {(score * 100).toFixed(0)}
-                  </div>
-                </Button>
-              );
-            } else {
-              return null;
-            }
-          })}
-        </div>
+        <CountryOptionsList searchResults={searchResults} />
       </div>
+
+      {/* prettier-ignore  */}
       <>
-        <>
-          {state === GameState.Won && <h2 className="sr-only">You won!</h2>}
-          {state === GameState.Lost && <h2 className="sr-only">You lost!</h2>}
-        </>
-        {/* debug only*/}
-        <pre className="hidden!">
-          {gameState.selectedCountry?.name}
-          <br />
-          {JSON.stringify(guess, null, 2)}
-          <br />
-          <div className="hidden">{JSON.stringify(gameState, null, 2)}</div>
-        </pre>{" "}
+          {/* debug only*/}
+          {gameState.state === GameState.Won && ( <h2 className="sr-only">You won!</h2>)}
+          {gameState.state === GameState.Lost && ( <h2 className="sr-only">You lost!</h2>)}
+        <pre className="hidden!"> {gameState.selectedCountry?.name} <br /> {JSON.stringify(guess, null, 2)} <br /> <div className="hidden">{JSON.stringify(gameState, null, 2)}</div> </pre>
       </>
     </section>
+  );
+}
+
+type CountryOptionProps = {
+  item: ICountry;
+  score: number;
+  index: number | string;
+};
+
+function CountryOption({
+  item,
+  score,
+  index,
+}: CountryOptionProps): JSX.Element {
+  const value = item.alpha3Code;
+  // const value = encodeURIComponent(JSON.stringify(item));
+  const label = `${item.name}  (${(score * 100).toFixed(0)})`;
+  const id = `country-option-${item.alpha3Code}-${index}`;
+
+  return (
+    <option
+      // onSelect={(e) => { e.preventDefault(); }}
+      id={id}
+      key={id}
+      value={value}
+    >
+      {label}
+    </option>
+  );
+}
+
+function CountryOptionsList({
+  searchResults,
+}: {
+  searchResults: SearchResult[] | null;
+}): JSX.Element {
+  const options = searchResults
+    ?.filter((result) => {
+      const score = (result.score ?? -1) * 100;
+      return score >= 0 && score <= 400 && result.score;
+    })
+    .map((result, index) => (
+      <CountryOption
+        item={result.item}
+        score={result.score ?? -1}
+        index={index}
+      />
+    ));
+
+  return (
+    <div className="grid h-[300px] gap-1 overflow-y-auto">
+      <datalist id="countries">{options}</datalist>
+    </div>
   );
 }
 
