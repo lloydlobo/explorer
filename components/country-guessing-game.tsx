@@ -144,6 +144,12 @@ function FlagGuessingGame(): JSX.Element {
     setGuess(""); // Reset the guess.
   } // end of selectRandomCountry.
 
+  function processTurnAndClear() {
+    checkGuessCountry();
+    setQuery("");
+    setGuess("");
+  }
+
   // Reset the game.
   function resetGame(timeout: number = 5000) {
     setTimeout(() => {
@@ -165,11 +171,8 @@ function FlagGuessingGame(): JSX.Element {
   // Get the list of remaining tries.
   const triesRemaining = gameState.triesRemaining;
 
-  // Get teh list of guessed countries.
+  // Get the list of guessed countries.
   const guessedCountries = Array.from(gameState.guessedCountries);
-
-  // Get the current game state from the hook.
-  const state = gameState.state;
 
   const randomCountry = gameState.selectedCountry;
 
@@ -234,11 +237,9 @@ function FlagGuessingGame(): JSX.Element {
       }
       setGuess(c);
       toast({
-        title: `Guessing ${c}`,
+        title: `Guessing ${c}…`,
       });
-      checkGuessCountry();
-      setQuery("");
-      setGuess("");
+      processTurnAndClear();
     } else {
       return;
     }
@@ -261,9 +262,10 @@ function FlagGuessingGame(): JSX.Element {
     }
 
     setGuess(c);
-    checkGuessCountry();
-    setQuery("");
-    setGuess("");
+    toast({
+      title: `Guessing ${c}…`,
+    });
+    processTurnAndClear();
   }
 
   function handleSelectCountryInputOptionOnChange(
@@ -338,73 +340,51 @@ function FlagGuessingGame(): JSX.Element {
         </div>
 
         <div className="relative">
-          <div className="flex absolute top-0! inset-y-0 left-0 items-center pl-3 pointer-events-none">
-            <SearchIcon
-              aria-hidden="true"
-              className="w-5 h-5 text-gray-500 dark:text-gray-400"
+          <div className="relative">
+            <div className="flex absolute top-0! inset-y-0 left-0 items-center pl-3 pointer-events-none">
+              <SearchIcon
+                aria-hidden="true"
+                className="w-5 h-5 text-gray-500 dark:text-gray-400"
+              />
+            </div>
+            <Input
+              value={guess}
+              onChange={handleInputOnChange}
+              placeholder="Search a country…"
+              type="search"
+              className={cn(styleInput, "rounded-none")}
             />
           </div>
-          <Input
-            value={guess}
-            onChange={handleInputOnChange}
-            placeholder="Search a country…"
-            type="search"
-            className={cn(styleInput, "rounded-none")}
-          />
           <select
             multiple={true}
             ref={selectRef}
             onChange={(e) => handleSelectChange(e)}
             onKeyDown={(e) => handleSelectKeyPress(e)}
-            // autoFocus={true}
-            // open={true}
-            // multiple
-            className="absolute w-full"
+            className="border h-[350px] absolute w-full"
           >
             {searchResults
               ?.filter((result) => {
                 const score = (result.score ?? -1) * 100;
                 return score >= 0 && score <= 400 && result.score;
               })
-              .map((result, index) => (
+              .map((result, idxResult) => (
                 <option
+                  key={`option-${query}-${result.item.alpha3Code}-${idxResult}`}
                   value={result.item.alpha3Code}
                   onClick={(e) => handleOptionClick(e)}
+                  className={`first-letter:font-medium`}
                 >
                   {result.item.name}
                 </option>
               ))}
           </select>
-        </div>
-
-        <div className="relative hidden">
-          <div className="flex absolute top-0! inset-y-0 left-0 items-center pl-3 pointer-events-none">
-            <SearchIcon
-              aria-hidden="true"
-              className="w-5 h-5 text-gray-500 dark:text-gray-400"
-            />
+          {/* HACK: We need the datalist from CountryOptionsList to be rendered
+          so that it acts as UI, while `<select>` abouve of positon absolute,
+          acts as the UX accessible headless ui. */}
+          <div className="h-full opacity-0 pointer-events-none">
+            <CountryOptionsList searchResults={searchResults} />
           </div>
-
-          <Input
-            value={guess}
-            onChange={(e) => handleSelectCountryInputOptionOnChange(e)}
-            autoFocus={true}
-            onBlur={(e) => handleInputOnBlur(e)}
-            placeholder="Search a country…"
-            type="search"
-            className={cn(styleInput, "rounded-none")}
-            list="countries"
-            disabled={
-              !gameState.selectedCountry ||
-              triesRemaining === 0 ||
-              [GameState.Canceled, GameState.Won, GameState.Lost].includes(
-                gameState.state
-              )
-            }
-          />
         </div>
-
-        <CountryOptionsList searchResults={searchResults} />
       </div>
 
       {/* prettier-ignore  */}
@@ -465,7 +445,7 @@ function CountryOptionsList({
     ));
 
   return (
-    <div className="grid h-[300px] gap-1 overflow-y-auto">
+    <div className="grid h-full min-h-[350px] gap-1 overflow-y-auto">
       <datalist id="countries">{options}</datalist>
     </div>
   );
