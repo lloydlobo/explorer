@@ -53,7 +53,7 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
       <div className="relative">
         <FlagGuessingGame />
 
-        <div className="absolute scale-75 -z-50 top-0 right-0">
+        <div className="absolute hidden scale-75 -z-50 top-0 right-0">
           <Image
             className="object-cover flex justify-center opacity-80! pointer-events-none"
             src={require("@/lib/dev/2023-04-17-1003-explorer.png")}

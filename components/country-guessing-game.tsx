@@ -79,6 +79,10 @@ function FlagGuessingGame(): JSX.Element {
   //   }
   // }, [searchResults]);
 
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_START: GAME LOGIC
+  /////////////////////////////////////////////////////////////////////////////
+
   // Select a random countryfrom the list of countries.
   function selectRandomCountry() {
     const randomCountry =
@@ -167,6 +171,14 @@ function FlagGuessingGame(): JSX.Element {
       toast({ title: "Game reset", duration: 1000 });
     }, timeout);
   }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_END: GAME LOGIC
+  /////////////////////////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_START: GAME EVENT HANDLERS
+  /////////////////////////////////////////////////////////////////////////////
 
   // Get the list of remaining tries.
   const triesRemaining = gameState.triesRemaining;
@@ -284,12 +296,20 @@ function FlagGuessingGame(): JSX.Element {
     toast({ title: `onBlur: ${value}` });
   }
 
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_END: GAME EVENT HANDLERS
+  /////////////////////////////////////////////////////////////////////////////
+
   const { flag, flags } = randomCountry || gameState.selectedCountry || {};
   const imageUrl =
     flag ||
     flags?.png ||
     "/assets/placeholders/flag.jpg" ||
     require("../public/assets/placeholders/flag.jpg");
+
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_START: GAME UI RENDERING REACT COMPONENT
+  /////////////////////////////////////////////////////////////////////////////
 
   return (
     <section className="grid gap-4 justify-center">
@@ -316,28 +336,41 @@ function FlagGuessingGame(): JSX.Element {
         </AspectRatio>
       </div>
 
-      <div className="flex text-xs space-x-4 justify-center">
+      <div className="grid grid-flow-col absolute top-4 text-xs space-x-4 justify-center">
         <p>Tries Remaining: {triesRemaining}</p>
         <p>Guessed Countries: {guessedCountries.join(", ")}</p>
+        {/* debug only*/}
+        <>
+          {gameState.state === GameState.Won && (
+            <h2 className="sr-only">You won!</h2>
+          )}
+          {gameState.state === GameState.Lost && (
+            <h2 className="sr-only">You lost!</h2>
+          )}
+          <pre className="hidden!">
+            {" "}
+            {gameState.selectedCountry?.name} <br />{" "}
+            {JSON.stringify(guess, null, 2)} <br />{" "}
+            <div className="hidden">{JSON.stringify(gameState, null, 2)}</div>{" "}
+          </pre>
+        </>
       </div>
 
       <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
-        <div className="grid">
-          <Button
-            onClick={checkGuessCountry}
-            className="rounded-none"
-            variant="default"
-          >
-            Guess
-          </Button>
-          <Button
-            onClick={selectRandomCountry}
-            className="rounded-none"
-            variant="outline"
-          >
-            Skip
-          </Button>
-        </div>
+        <Button
+          onClick={checkGuessCountry}
+          className="rounded-none"
+          variant="default"
+        >
+          Guess
+        </Button>
+        <Button
+          onClick={selectRandomCountry}
+          className="rounded-none"
+          variant="outline"
+        >
+          Skip
+        </Button>
 
         <div className="relative">
           <div className="relative">
@@ -355,12 +388,13 @@ function FlagGuessingGame(): JSX.Element {
               className={cn(styleInput, "rounded-none")}
             />
           </div>
+
           <select
             multiple={true}
             ref={selectRef}
             onChange={(e) => handleSelectChange(e)}
             onKeyDown={(e) => handleSelectKeyPress(e)}
-            className="border h-[350px] absolute w-full"
+            className="border h-[300px] absolute w-full"
           >
             {searchResults
               ?.filter((result) => {
@@ -378,6 +412,7 @@ function FlagGuessingGame(): JSX.Element {
                 </option>
               ))}
           </select>
+
           {/* HACK: We need the datalist from CountryOptionsList to be rendered
           so that it acts as UI, while `<select>` abouve of positon absolute,
           acts as the UX accessible headless ui. */}
@@ -386,16 +421,12 @@ function FlagGuessingGame(): JSX.Element {
           </div>
         </div>
       </div>
-
-      {/* prettier-ignore  */}
-      <>
-          {/* debug only*/}
-          {gameState.state === GameState.Won && ( <h2 className="sr-only">You won!</h2>)}
-          {gameState.state === GameState.Lost && ( <h2 className="sr-only">You lost!</h2>)}
-        <pre className="hidden!"> {gameState.selectedCountry?.name} <br /> {JSON.stringify(guess, null, 2)} <br /> <div className="hidden">{JSON.stringify(gameState, null, 2)}</div> </pre>
-      </>
     </section>
   );
+
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_END: GAME UI RENDERING REACT COMPONENT
+  /////////////////////////////////////////////////////////////////////////////
 }
 
 type CountryOptionProps = {
@@ -445,7 +476,7 @@ function CountryOptionsList({
     ));
 
   return (
-    <div className="grid h-full min-h-[350px] gap-1 overflow-y-auto">
+    <div className="grid h-full min-h-[300px] gap-1 overflow-y-auto">
       <datalist id="countries">{options}</datalist>
     </div>
   );
