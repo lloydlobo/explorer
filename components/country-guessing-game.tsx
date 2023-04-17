@@ -250,6 +250,7 @@ function FlagGuessingGame(): JSX.Element {
       setGuess(c);
       toast({
         title: `Guessing ${c}…`,
+        duration: 200,
       });
       processTurnAndClear();
     } else {
@@ -276,6 +277,7 @@ function FlagGuessingGame(): JSX.Element {
     setGuess(c);
     toast({
       title: `Guessing ${c}…`,
+      duration: 200,
     });
     processTurnAndClear();
   }
@@ -321,7 +323,6 @@ function FlagGuessingGame(): JSX.Element {
       >
         Guess the country
       </Heading>
-
       <div className="py-2 mx-auto w-[250px]">
         <AspectRatio ratio={3 / 2}>
           {/* Flag ratio is commonly 3/2 or 2/1 :
@@ -335,7 +336,6 @@ function FlagGuessingGame(): JSX.Element {
           />
         </AspectRatio>
       </div>
-
       <div className="grid grid-flow-col absolute top-4 text-xs space-x-4 justify-center">
         <p>Tries Remaining: {triesRemaining}</p>
         <p>Guessed Countries: {guessedCountries.join(", ")}</p>
@@ -355,7 +355,6 @@ function FlagGuessingGame(): JSX.Element {
           </pre>
         </>
       </div>
-
       <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
         <Button
           onClick={checkGuessCountry}
@@ -394,7 +393,7 @@ function FlagGuessingGame(): JSX.Element {
             ref={selectRef}
             onChange={(e) => handleSelectChange(e)}
             onKeyDown={(e) => handleSelectKeyPress(e)}
-            className="border h-[300px] absolute w-full"
+            className="border h-[300px] absolute w-full bg-transparent z-10 rounded-none"
           >
             {searchResults
               ?.filter((result) => {
@@ -406,18 +405,61 @@ function FlagGuessingGame(): JSX.Element {
                   key={`option-${query}-${result.item.alpha3Code}-${idxResult}`}
                   value={result.item.alpha3Code}
                   onClick={(e) => handleOptionClick(e)}
-                  className={`first-letter:font-medium`}
+                  className={`first-letter:font-medium hover:bg-slate-600 backdrop-blur-[4px]`}
                 >
                   {result.item.name}
                 </option>
               ))}
           </select>
 
+          <div className="border gap-0 grid -z-10 h-[300px] absolute w-full">
+            {Array.from(Array(MAX_TRIES)).map((_, index) => {
+              return (
+                <Button
+                  key={`button-${index}`}
+                  variant={"subtle"}
+                  // size={"sm"}
+                  className="w-full h-full border-b border-t rounded-none pointer-events-none"
+                >
+                  <div className="grid grid-flow-col items-center gap-2">
+                    <div className="sr-only">{index + 1}</div>
+                    <div className="capitalize! uppercase tracking-wider">
+                      {Array.from(gameState.guessedCountries)[index] &&
+                        Array.from(gameState.guessedCountries)
+                          [index].toString()
+                          .split("")
+                          .map((char) => {
+                            if (
+                              gameState.selectedCountry?.name.includes(char)
+                            ) {
+                              return (
+                                <span className="text-green-500">{char}</span>
+                              );
+                            }
+                            return <span>{char}</span>;
+                          })}
+                    </div>
+                    <div className="distance">
+                      {Array.from(gameState.guessedCountries)[index] ===
+                      gameState.selectedCountry?.alpha3Code ? (
+                        <span className="">✅</span>
+                      ) : (
+                        <span className="opacity-0">⛔</span>
+                      )}
+                    </div>
+                  </div>
+                </Button>
+              );
+            })}
+          </div>
+
           {/* HACK: We need the datalist from CountryOptionsList to be rendered
           so that it acts as UI, while `<select>` abouve of positon absolute,
           acts as the UX accessible headless ui. */}
-          <div className="h-full opacity-0 pointer-events-none">
-            <CountryOptionsList searchResults={searchResults} />
+          <div className="h-full pointer-events-none">
+            <div className="opacity-5">
+              <CountryOptionsList searchResults={searchResults} />
+            </div>
           </div>
         </div>
       </div>
@@ -427,6 +469,10 @@ function FlagGuessingGame(): JSX.Element {
   /////////////////////////////////////////////////////////////////////////////
   // REGION_END: GAME UI RENDERING REACT COMPONENT
   /////////////////////////////////////////////////////////////////////////////
+}
+
+function getCountryInfo(countries: ICountry[], alpha3Code: string) {
+  return countries.find((c) => c.alpha3Code === alpha3Code);
 }
 
 type CountryOptionProps = {
