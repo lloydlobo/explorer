@@ -419,27 +419,32 @@ function FlagGuessingGame(): JSX.Element {
                   key={`button-${index}`}
                   variant={"subtle"}
                   // size={"sm"}
-                  className="w-full h-full border-b border-t rounded-none pointer-events-none"
+                  className="w-full overflow-scroll h-full border-b border-t rounded-none pointer-events-none"
                 >
-                  <div className="grid grid-flow-col items-center gap-2">
+                  <div className="grid grid-flow-col overflow-ellipsis overflow-x-scroll items-center gap-2">
                     <div className="sr-only">{index + 1}</div>
-                    <div className="capitalize! uppercase tracking-wider">
-                      {Array.from(gameState.guessedCountries)[index] &&
-                        Array.from(gameState.guessedCountries)
-                          [index].toString()
-                          .split("")
-                          .map((char) => {
-                            if (
-                              gameState.selectedCountry?.name.includes(char)
-                            ) {
-                              return (
-                                <span className="text-green-500">{char}</span>
-                              );
-                            }
-                            return <span>{char}</span>;
-                          })}
+                    <div className="capitalize! text-xl flex flex-nowrap uppercase tracking-widest">
+                      <Heading className="leading-none my-0 py-0 tracking-widest">
+                        <>
+                          {Array.from(gameState.guessedCountries)[index] &&
+                            Array.from(gameState.guessedCountries)
+                              [index].split("")
+                              .map((char) => {
+                                if (
+                                  gameState.selectedCountry?.name.includes(char)
+                                ) {
+                                  return (
+                                    <span className="text-green-500">
+                                      {char}
+                                    </span>
+                                  );
+                                }
+                                return <span>{char}</span>;
+                              })}
+                        </>
+                      </Heading>
                     </div>
-                    <div className="distance">
+                    <div className="distance hidden">
                       {Array.from(gameState.guessedCountries)[index] ===
                       gameState.selectedCountry?.alpha3Code ? (
                         <span className="">✅</span>
