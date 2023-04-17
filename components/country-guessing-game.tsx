@@ -414,46 +414,72 @@ function FlagGuessingGame(): JSX.Element {
 
           <div className="border gap-0 grid -z-10 h-[300px] absolute w-full">
             {Array.from(Array(MAX_TRIES)).map((_, index) => {
-              return (
+              const guessedCountry = Array.from(gameState.guessedCountries)[
+                index
+              ];
+              const isCorrect =
+                guessedCountry === gameState.selectedCountry?.alpha3Code;
+
+              return guessedCountry ? (
                 <Button
-                  key={`button-${index}`}
-                  variant={"subtle"}
-                  // size={"sm"}
+                  key={`button-${index}-${guessedCountry.length}-${guess}`}
+                  variant="subtle"
                   className="w-full overflow-scroll h-full border-b border-t rounded-none pointer-events-none"
                 >
                   <div className="grid grid-flow-col overflow-ellipsis overflow-x-scroll items-center gap-2">
-                    <div className="sr-only">{index + 1}</div>
-                    <div className="capitalize! text-xl flex flex-nowrap uppercase tracking-widest">
+                    <div key={`index-${index}`} className="sr-only">
+                      {index + 1}
+                    </div>
+                    <div
+                      key={`heading-${index}-${guessedCountry.length}`}
+                      className="capitalize! text-xl flex flex-nowrap uppercase tracking-widest"
+                    >
                       <Heading className="leading-none my-0 py-0 tracking-widest">
                         <>
-                          {Array.from(gameState.guessedCountries)[index] &&
-                            Array.from(gameState.guessedCountries)
-                              [index].split("")
-                              .map((char) => {
-                                if (
+                          {guessedCountry &&
+                            guessedCountry.split("").map((char, i) => (
+                              <span
+                                key={`char-${i}-${char}-${index}-${guessedCountry.length}-${query}`}
+                                className={
                                   gameState.selectedCountry?.name.includes(char)
-                                ) {
-                                  return (
-                                    <span className="text-green-500">
-                                      {char}
-                                    </span>
-                                  );
+                                    ? "text-green-500"
+                                    : ""
                                 }
-                                return <span>{char}</span>;
-                              })}
+                              >
+                                {char}
+                              </span>
+                            ))}
                         </>
                       </Heading>
                     </div>
-                    <div className="distance hidden">
-                      {Array.from(gameState.guessedCountries)[index] ===
-                      gameState.selectedCountry?.alpha3Code ? (
-                        <span className="">✅</span>
+                    <div
+                      key={`distance-${index}-${guessedCountry.length}`}
+                      className="distance hidden"
+                    >
+                      {isCorrect ? (
+                        <span
+                          key={`correct-${index}-${guessedCountry.length}`}
+                          className=""
+                        >
+                          ✅
+                        </span>
                       ) : (
-                        <span className="opacity-0">⛔</span>
+                        <span
+                          key={`incorrect-${index}-${guessedCountry.length}`}
+                          className="opacity-0"
+                        >
+                          ⛔
+                        </span>
                       )}
                     </div>
                   </div>
                 </Button>
+              ) : (
+                <Button
+                  key={`button-${index}-null`}
+                  variant="subtle"
+                  className="w-full overflow-scroll h-full border-b border-t rounded-none pointer-events-none"
+                />
               );
             })}
           </div>
@@ -498,10 +524,9 @@ function CountryOption({
 
   return (
     <option
-      // onSelect={(e) => { e.preventDefault(); }}
       id={id}
-      key={id}
       value={value}
+      key={`country-option-${item.alpha3Code}-${index}`}
     >
       {label}
     </option>
@@ -520,6 +545,7 @@ function CountryOptionsList({
     })
     .map((result, index) => (
       <CountryOption
+        key={`country-option-${result.item.alpha3Code}-${index}`}
         item={result.item}
         score={result.score ?? -1}
         index={index}
