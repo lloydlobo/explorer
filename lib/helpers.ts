@@ -5,7 +5,20 @@ import * as z from "zod";
 /**
  * Zod schema for validating the selected region.
  */
-const selectedRegionSchema = z.enum(["all", ...Object.values(Region)]);
+// const selectedRegionSchema = z.enum(["all", ...Object.values(Region)]);
+// https://zod.dev/?id=native-enums
+const selectedRegionSchema = z.nativeEnum(Region);
+type RegionEnum = z.infer<typeof selectedRegionSchema>;
+
+// /**
+//  * Defines the parameters for the `sortCountries` function.
+//  */
+// type SortCountriesParams<T> = {
+//   /** The array of countries to sort. */
+//   displayedCountries: T[];
+//   /** The selected sort method. */
+//   selectedSortMethod: string;
+// };
 
 /**
  * Defines the parameters for the `filterCountryRegion` function.
@@ -27,6 +40,10 @@ export function filterCountryRegion<T extends ICountry>({
   selectedRegion: selectedRegionInput,
   displayedCountries,
 }: FilterCountryRegionParams<T>): T[] {
+  if (displayedCountries.length === 0) {
+    return [];
+  }
+
   // Validate the selected region using the Zod schema
   const selectedRegion = selectedRegionSchema.parse(
     selectedRegionInput.toLowerCase()

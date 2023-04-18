@@ -36,4 +36,48 @@ describe("filterCountryRegion function", () => {
     });
     expect(filteredCountries.length).toEqual(53);
   });
+
+  test("returns an empty array if empty array of countries are passed", () => {
+    const selectedRegion = Region.Africa;
+    const filteredCountries = filterCountryRegion({
+      selectedRegion,
+      displayedCountries: [],
+    });
+    expect(filteredCountries.length).toEqual(0);
+  });
+
+  test("throws an error if the selectedRegion parameter is not a valid region, i.e., not present in the Region enum", () => {
+    const expectedError = `[
+  {
+    "received": "asdasd",
+    "code": "invalid_enum_value",
+    "options": [
+      "all",
+      "africa",
+      "americas",
+      "asia",
+      "europe",
+      "oceania"
+    ],
+    "path": [],
+    "message": "Invalid enum value. Expected 'all' | 'africa' | 'americas' | 'asia' | 'europe' | 'oceania', received 'asdasd'"
+  }
+]`;
+    // expect(JSON.stringify(error.response.data.errors)).toEqual( expectedMessage.replace(/\s/g, ""));
+    expect(() => {
+      filterCountryRegion({
+        selectedRegion: "asdasd" as Region,
+        displayedCountries,
+      });
+    }).toThrowError(expectedError);
+  });
+
+  test("throws an error if the selectedRegion parameter is not a string, but a different data type such as a number or boolean", () => {
+    expect(() => {
+      filterCountryRegion({
+        selectedRegion: true as unknown as Region,
+        displayedCountries,
+      });
+    }).toThrowError("selectedRegionInput.toLowerCase is not a function");
+  });
 });
