@@ -165,7 +165,7 @@ describe("fetcher", () => {
   });
 
   afterAll(() => {
-    delete global.fetch;
+    delete global.fetch; // FIX: The operand of a 'delete' operator must be optional.ts(2790) ⚠ Error(TS2790) |
   });
 
   describe("when the fetch request is successful", () => {
@@ -224,6 +224,12 @@ describe("fetcher", () => {
     });
   });
 });
+
+// PERF: Test the fetcher function with different types of HTTP response statuses, such as 500 and 204 status codes, to ensure that it handles them correctly. This will help catch any issues that may arise when handling these types of responses.
+// PERF: Test the fetcher function with unexpected or malformed JSON responses from the server to make sure that it can handle them properly. This will help identify any problems that may occur when dealing with malformed JSON data or structures.
+// PERF: Verify that the fetcher function can correctly handle cases where the server response is empty or has missing or incomplete data fields. Test it with responses that have missing or incomplete data fields or with an empty response body.
+// PERF: Check that the fetcher function can handle cases where the request URL is invalid or malformed. Test it with URLs that have invalid characters or are not properly encoded or with a URL that points to a non-existent resource on the server.
+// PERF: Test the fetcher function under heavy load or with a server that has high latency to ensure that it can handle large responses or slow connections. This will help identify any issues that may occur when dealing with large or slow responses.
 
 ///////////////////////////////////////////////////////////////////////////////
 // region_end: fetcher
