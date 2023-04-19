@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "jest --watch",
     "lint": "next lint"
   },
   "dependencies": {
@@ -45,8 +46,13 @@
   "devDependencies": {
     "@swc-jotai/react-refresh": "^0.0.7",
     "@tanstack/react-query-devtools": "^4.29.1",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^14.0.0",
+    "@types/jest": "^29.5.0",
     "@types/prop-types": "^15.7.5",
     "fuse.js": "^6.6.2",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^29.5.0",
     "zod": "^3.21.4"
   }
 }
