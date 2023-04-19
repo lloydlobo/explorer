@@ -1,4 +1,5 @@
-import { cn, copyToClipboard } from "@/lib/utils";
+import { API_BASE_URL } from "@/lib/constants";
+import { cn, copyToClipboard, fetcher } from "@/lib/utils";
 
 ///////////////////////////////////////////////////////////////////////////////
 // region_start: cn
@@ -152,36 +153,78 @@ describe("copyToClipboard", () => {
 // region_end: copyToClipboard
 ///////////////////////////////////////////////////////////////////////////////
 
-// /**
-//  * `fetcher` fetches data from the given URL and returns it as JSON.
-//  *
-//  * @param options - An object containing the URL to fetch.
-//  * @returns A promise that resolves to the fetched JSON data.
-//  * @throws If the fetch request fails or the response is not valid JSON.
-//  */
-// export async function fetcher<T>(options: {
-//   url: RequestInfo | URL;
-//   // }): Promise<T | Error> {
-// }): Promise<T> {
-//   try {
-//     const response = await fetch(options.url);
-//     if (!response.ok) {
-//       throw new Error(`HTTP error: ${response.status}`);
-//     }
-//
-//     const json = (await response.json()) as T;
-//     return json;
-//   } catch (error: unknown) {
-//     if (error instanceof Error) {
-//       throw new Error(
-//         `Failed to fetch data from ${options.url}: ${error.message}`
-//       );
-//     }
-//     throw new Error(
-//       `Unexpected error while fetching data from ${options.url}: ${String(
-//         error
-//       )}`
-//     );
-//   }
-// }
-//
+///////////////////////////////////////////////////////////////////////////////
+// region_start: fetcher
+///////////////////////////////////////////////////////////////////////////////
+
+describe("fetcher", () => {
+  const mockFetch = jest.fn();
+
+  beforeAll(() => {
+    global.fetch = mockFetch;
+  });
+
+  afterAll(() => {
+    delete global.fetch;
+  });
+
+  describe("when the fetch request is successful", () => {
+    test("fetches data from URL and returns JSON", async () => {
+      const data = { foo: "bar" };
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(data),
+      });
+
+      const url = `${API_BASE_URL}/alpha/USA`;
+      const result = await fetcher({ url });
+
+      expect(result).toEqual(data);
+      expect(mockFetch).toHaveBeenCalledWith(url);
+    });
+  });
+
+  describe("when the fetch request fails", () => {
+    test("throws an error", async () => {
+      const error = new Error("Failed to fetch data");
+      mockFetch.mockRejectedValue(error);
+
+      const url = `${API_BASE_URL}/alpha/USA`;
+      await expect(fetcher({ url })).rejects.toThrow(
+        new Error(`Failed to fetch data from ${url}: ${error.message}`)
+      );
+    });
+  });
+
+  describe("when the response is not valid JSON", () => {
+    test("throws an error", async () => {
+      const err = JSON.stringify({ invalid: "json" }, null, 2);
+      const response = {
+        ok: true,
+        json: () => Promise.reject(err),
+      };
+      mockFetch.mockResolvedValue(response);
+
+      const url = `${API_BASE_URL}/alpha/USA`;
+      await expect(fetcher({ url })).rejects.toThrow(
+        new Error(`Unexpected error while fetching data from ${url}: ${err}`)
+      );
+    });
+  });
+
+  describe("when the response status is not ok", () => {
+    test("throws an error", async () => {
+      const response = { ok: false, status: 404 };
+      mockFetch.mockResolvedValue(response);
+
+      const url = `${API_BASE_URL}/alpha/USA`;
+      await expect(fetcher({ url })).rejects.toThrow(
+        new Error(`Failed to fetch data from ${url}: HTTP error: 404`)
+      );
+    });
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////
+// region_end: fetcher
+///////////////////////////////////////////////////////////////////////////////
