@@ -7,6 +7,10 @@ import {
 } from "@/lib/helpers";
 import type { ICountry } from "@/lib/types/types-country";
 
+///////////////////////////////////////////////////////////////////////////////
+// region_start: filterCountryRegion
+///////////////////////////////////////////////////////////////////////////////
+
 describe("filterCountryRegion helper function", () => {
   const displayedCountries: ICountry[] = countries;
 
@@ -60,8 +64,7 @@ describe("filterCountryRegion helper function", () => {
   });
 
   describe("when selected region is not a valid region", () => {
-    test("throws an error", () => {
-      const expectedError = `[
+    const expectedError = `[
   {
     "received": "asdasd",
     "code": "invalid_enum_value",
@@ -78,13 +81,13 @@ describe("filterCountryRegion helper function", () => {
   }
 ]`;
 
+    test("throws an error", () => {
       expect(() =>
         filterCountryRegion({
           selectedRegion: "asdasd" as Region,
           displayedCountries,
         })
-      ).toThrowError(expectedError);
-      // ).toThrowErrorMatchingInlineSnapshot(expectedError);
+      ).toThrowError(expectedError); // ).toThrowErrorMatchingInlineSnapshot(expectedError);
     });
   });
 
@@ -110,6 +113,14 @@ describe("filterCountryRegion helper function", () => {
     });
   });
 });
+
+///////////////////////////////////////////////////////////////////////////////
+// region_end: filterCountryRegion
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// region_start: getViewType
+///////////////////////////////////////////////////////////////////////////////
 
 describe("getViewType helper function", () => {
   test("returns `ViewType.Cards` for `default`", () => {
@@ -142,3 +153,7 @@ describe("getViewType helper function", () => {
     }
   });
 });
+
+///////////////////////////////////////////////////////////////////////////////
+// region_end: getViewType
+///////////////////////////////////////////////////////////////////////////////

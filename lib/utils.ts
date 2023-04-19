@@ -52,6 +52,7 @@ export interface CopyToClipboardOptions {
 }
 /**
  * Copies the specified text to the clipboard using the Clipboard API.
+ * NOTE: consider using `async` if the callback `onSuccess` doesn't work.
  *
  * @param text The text to copy to the clipboard.
  * @param onSuccess An optional callback that will be called if the text is successfully copied to the clipboard.
@@ -75,17 +76,6 @@ export function copyToClipboard({
 }: CopyToClipboardOptions): void {
   navigator.clipboard.writeText(text).then(onSuccess).catch(onError);
 }
-
-// export function copyToClipboard(options: CopyToClipboardOptions): void {
-//   const {
-//     text,
-//     onSuccess = () => { },
-//     onError = (error: Error) => {
-//       throw error;
-//     },
-//   } = options;
-//   navigator.clipboard.writeText(text).then(onSuccess).catch(onError);
-// }
 
 /**
  * `fetcher` fetches data from the given URL and returns it as JSON.
@@ -119,4 +109,3 @@ export async function fetcher<T>(options: {
     );
   }
 }
-
