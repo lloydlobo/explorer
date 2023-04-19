@@ -1,5 +1,11 @@
 import { API_BASE_URL } from "@/lib/constants";
-import { cn, copyToClipboard, fetcher } from "@/lib/utils";
+import {
+  absoluteUrl,
+  cn,
+  copyToClipboard,
+  fetcher,
+  formatDate,
+} from "@/lib/utils";
 
 ///////////////////////////////////////////////////////////////////////////////
 // region_start: cn
@@ -233,4 +239,46 @@ describe("fetcher", () => {
 
 ///////////////////////////////////////////////////////////////////////////////
 // region_end: fetcher
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// region_start: formatDate
+///////////////////////////////////////////////////////////////////////////////
+
+describe("formatDate", () => {
+  test("returns formatted date with a string input", () => {
+    const date = formatDate("2022-05-31");
+    expect(date).toBe("May 31, 2022");
+  });
+
+  test("returns formatted date with a number input", () => {
+    const date = formatDate(1656595200000);
+    expect(date).toBe("June 30, 2022");
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////
+// region_end: formatDate
+///////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////////////////////////////////////////////////
+// region_start: absoluteUrl
+///////////////////////////////////////////////////////////////////////////////
+
+describe("absoluteUrl", () => {
+  test("returns absoluteUrl for a path that starts with a slash", () => {
+    const url = absoluteUrl("/about");
+    expect(url).toBe("http://localhost:3000/about");
+  });
+
+  test("returns absoluteUrl for a path that doesn't starts with a slash", () => {
+    const envUrl = process.env.NEXT_PUBLIC_APP_URL;
+    expect(envUrl).toBe("http://localhost:3000");
+    const url = absoluteUrl("about");
+    expect(url).toBe("http://localhost:3000/about");
+  });
+});
+
+///////////////////////////////////////////////////////////////////////////////
+// region_end: absoluteUrl
 ///////////////////////////////////////////////////////////////////////////////

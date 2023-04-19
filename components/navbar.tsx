@@ -1,5 +1,4 @@
-import Link from "next/link";
-import React from "react";
+import { ModeToggle } from "@/components/mode-toggle";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -9,10 +8,12 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   NavigationMenuViewport,
+  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { navigationMenuTriggerStyle } from "@/components/ui/navigation-menu";
 import { Toggle } from "@/components/ui/toggle";
 import { Italic, Moon, SunMoon } from "lucide-react";
+import Link from "next/link";
+import React from "react";
 
 export default function Navbar() {
   return (
@@ -52,16 +53,7 @@ export default function Navbar() {
         </NavigationMenuList>
       </NavigationMenu>
 
-      <ToggleSm />
+      <ModeToggle />
     </nav>
-  );
-}
-
-export function ToggleSm() {
-  return (
-    <Toggle size="sm" aria-label="Toggle theme">
-      <SunMoon className="w-4 h-4" />
-      <Moon className="w-4 h-4" />
-    </Toggle>
   );
 }
