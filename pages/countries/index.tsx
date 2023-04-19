@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { GetStaticProps, NextPage } from "next";
 import { useState } from "react";
+import * as z from "zod";
 
 import { CountryList } from "@/components/country/country-list";
 import Layout from "@/components/layout";
@@ -9,7 +10,7 @@ import SelectRegion from "@/components/select-region";
 import { SelectView } from "@/components/select-view";
 import { API_BASE_URL } from "@/lib/constants";
 import { Region, ViewType } from "@/lib/enums";
-import { filterCountryRegion } from "@/lib/helpers";
+import { filterCountryRegion, getViewType } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/ui/use-toast";
 import { useAppStore } from "@/lib/state/app-store";
 import { useCountryStore } from "@/lib/state/country-store";
@@ -60,23 +61,23 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   };
 
   const handleSelectView = (value: string) => {
-    switch (value as ViewType) {
-      case ViewType.Default:
-      case ViewType.Cards:
-        setSelectedView(ViewType.Cards);
-        break;
-      case ViewType.Table:
-        setSelectedView(ViewType.Table);
-        break;
-      default:
-        // TODO: Handle invalid value/state.
-        break;
+    const ViewTypeSchema = z.nativeEnum(ViewType); // Define a Zod schema for the ViewType enum
+    try {
+      const parsedValue = ViewTypeSchema.parse(value); // Validate the input against the schema.
+      const selectedView = getViewType(parsedValue); // HACK:debt of not checking if it matches enum. Validate!
+      setSelectedView(selectedView);
+      toast({ title: `View set to ${value}` });
+    } catch (err) {
+      toast({
+        title: `Failed to set view to ${value} as it is not a valid type`,
+        description: `ERROR: ${err}`,
+      });
+      toast({
+        title: `Reverting to ${getViewType(ViewType.Default)} view`,
+      });
+      setSelectedView(ViewType.Default);
+      throw new Error(`${err}: ${value} is not a valid view type`);
     }
-
-    toast({
-      title: `View set to ${value}`,
-      description: "",
-    });
   };
 
   // Filter the list of countries based on the selected region.

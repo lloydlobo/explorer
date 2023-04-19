@@ -1,4 +1,4 @@
-import { Region } from "@/lib/enums";
+import { Region, ViewType } from "@/lib/enums";
 import { ICountry } from "@/lib/types/types-country";
 import * as z from "zod";
 
@@ -7,18 +7,7 @@ import * as z from "zod";
  */
 // const selectedRegionSchema = z.enum(["all", ...Object.values(Region)]);
 // https://zod.dev/?id=native-enums
-const selectedRegionSchema = z.nativeEnum(Region);
-type RegionEnum = z.infer<typeof selectedRegionSchema>;
-
-// /**
-//  * Defines the parameters for the `sortCountries` function.
-//  */
-// type SortCountriesParams<T> = {
-//   /** The array of countries to sort. */
-//   displayedCountries: T[];
-//   /** The selected sort method. */
-//   selectedSortMethod: string;
-// };
+const selectedRegionSchema = z.nativeEnum(Region); // type RegionEnum = z.infer<typeof selectedRegionSchema>;
 
 /**
  * Defines the parameters for the `filterCountryRegion` function.
@@ -58,4 +47,42 @@ export function filterCountryRegion<T extends ICountry>({
   return displayedCountries.filter(
     (country) => country.region.toLowerCase() === selectedRegion
   );
+}
+
+/**
+ * Returns the corresponding ViewType for the given value.
+ *
+ * @param value - The value to convert to a ViewType.
+ * @returns The ViewType corresponding to the given value.
+ * @throws Error if the given value is not a valid ViewType.
+ *
+ * @example
+ * ```
+ * const viewType = getViewType("Cards"); // Returns ViewType.Cards
+ * const viewType = getViewType("Default"); // Returns ViewType.Cards
+ * ```
+ */
+export function getViewType(value: ViewType): ViewType {
+  switch (value) {
+    case ViewType.Default:
+    case ViewType.Cards: {
+      return ViewType.Cards;
+    }
+    case ViewType.Table: {
+      return ViewType.Table;
+    }
+    default: {
+      throw new InvalidViewTypeError(value);
+    }
+  }
+}
+
+// To provide more useful error messages for invalid input in the handleSelectView function,
+// we can use a custom error class that extends the built-in Error class.
+// This custom error class can take the invalid value as a parameter and construct a more detailed error message that includes the invalid value and the expected values.
+export class InvalidViewTypeError extends Error {
+  constructor(value: string) {
+    super(`Invalid value '${value}' supplied to 'handleSelectView'.
+Value must be one of '${ViewType.Cards}', '${ViewType.Table}', or '${ViewType.Default}'.`);
+  }
 }
