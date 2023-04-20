@@ -16,9 +16,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Heading } from "@/components/ui/typography";
 import { useToast } from "@/lib/hooks/ui/use-toast";
 import { useCountrySearch } from "@/lib/hooks/use-country-search";
+import { useQueryAllCountries } from "@/lib/hooks/use-query-all-countries";
 import { ICountry } from "@/lib/types/types-country";
 import { SearchResult } from "@/lib/types/types-fuse-search-result";
 import { cn } from "@/lib/utils";
@@ -27,8 +29,7 @@ import produce from "immer";
 import { atom, useAtom } from "jotai";
 import { Check, ChevronsUpDown, SearchIcon } from "lucide-react";
 import Image from "next/image";
-import { encode } from "punycode";
-import {
+import React, {
   ChangeEvent,
   FocusEvent,
   FormEvent,
@@ -39,7 +40,6 @@ import {
   useState,
 } from "react";
 import { AccordianGuesses } from "./accordion-guesses";
-import React from "react";
 
 const MAX_TRIES = 6;
 
@@ -389,7 +389,7 @@ function FlagGuessingGame(): JSX.Element {
         </Button>
 
         <CommandCombobox />
-        <div className="relative">
+        {/* <div className="relative">
           <div className="relative">
             <div className="flex absolute top-0! inset-y-0 left-0 items-center pl-3 pointer-events-none">
               <SearchIcon
@@ -502,15 +502,16 @@ function FlagGuessingGame(): JSX.Element {
             })}
           </div>
 
-          {/* HACK: We need the datalist from CountryOptionsList to be rendered
-          so that it acts as UI, while `<select>` abouve of positon absolute,
-          acts as the UX accessible headless ui. */}
           <div className="h-full pointer-events-none">
             <div className="opacity-5">
               <CountryOptionsList searchResults={searchResults} />
             </div>
           </div>
-        </div>
+        </div> */}
+
+        {/* HACK: We need the datalist from CountryOptionsList to be rendered
+          so that it acts as UI, while `<select>` abouve of positon absolute,
+          acts as the UX accessible headless ui. */}
       </div>
     </section>
   );
@@ -579,91 +580,90 @@ function CountryOptionsList({
 
 export { FlagGuessingGame, gameStateAtom, GameState };
 
-// function endGame(hasWon: boolean) {
-// state.update((draft) => {
-// draft.state = GameState.Ended;
-// draft.hasWon = hasWon;
-// });
-// toast({
-// title: "Game Over",
-// message: hasWon ? "Congratulations, you guessed the country!" : The country was ${currentCountry},
-// duration: 5000,
-// position: "bottom-right",
-// variant: hasWon ? "success" : "error",
-// });
-// }
-
-// "use client"
-
-// import * as React from "react"
-
-const frameworks = [
-  {
-    value: "next.js",
-    label: "Next.js",
-  },
-  {
-    value: "sveltekit",
-    label: "SvelteKit",
-  },
-  {
-    value: "nuxt.js",
-    label: "Nuxt.js",
-  },
-  {
-    value: "remix",
-    label: "Remix",
-  },
-  {
-    value: "astro",
-    label: "Astro",
-  },
-];
-
-export function CommandCombobox() {
+/**
+ * A CommandCombobox component that allows the user to search and select a country.
+ * @remarks
+ * This component uses the useQueryAllCountries hook to fetch the list of countries.
+ * It renders a button that displays a dropdown of the list of countries in a Command UI.
+ * The user can search for a country by typing in the input box and select a country by clicking on it.
+ * @returns The CommandCombobox component.
+ * @beta
+ */
+function CommandCombobox() {
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
+  const [selectedOption, setSelectedOption] = useState("");
+  const [value, setValue] = useState("");
 
+  const {
+    data,
+    isLoading: queryIsLoading,
+    error: queryError,
+  } = useQueryAllCountries();
+
+  // Display a loading spinner while data is being fetched.
+  if (queryIsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // Display an error message if there was an error fetching the data.
+  if (queryError instanceof Error) {
+    return <div>Error: {queryError.message}</div>;
+  }
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-[200px] justify-between"
-        >
-          {value
-            ? frameworks.find((framework) => framework.value === value)?.label
-            : "Select framework..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0">
-        <Command>
-          <CommandInput placeholder="Search framework..." />
-          <CommandEmpty>No framework found.</CommandEmpty>
-          <CommandGroup>
-            {frameworks.map((framework) => (
-              <CommandItem
-                key={framework.value}
-                onSelect={(currentValue) => {
-                  setValue(currentValue === value ? "" : currentValue);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "mr-2 h-4 w-4",
-                    value === framework.value ? "opacity-100" : "opacity-0"
-                  )}
-                />
-                {framework.label}
-              </CommandItem>
-            ))}
-          </CommandGroup>
-        </Command>
-      </PopoverContent>
-    </Popover>
+    <div className="grid">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="min-w-[200px] justify-between"
+          >
+            {selectedOption || "Select a country…"}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="min-w-[200px] w-full max-h-[350px]! p-0">
+          <Command>
+            <CommandInput
+              onValueChange={(search) => {
+                setValue(search);
+                setOpen(true);
+              }}
+              placeholder="Search a country…"
+            />
+            <CommandEmpty>No countries found.</CommandEmpty>
+            {data ? (
+              <CommandGroup>
+                <ScrollArea className="h-[200px] w-[350px] rounded-md border p-4">
+                  {data.map((country, idxCountry) => (
+                    <CommandItem
+                      key={`${country.alpha3Code}-${idxCountry}-countryItem`}
+                      onSelect={(currentValue) => {
+                        setSelectedOption(
+                          currentValue === value ? "" : country.name
+                        ); // Setting country.name as it is capitalized, while radix it seems b.t.s. lowercases currentValue or we could have used it instead of country.name.
+                        setValue(currentValue === value ? "" : currentValue); // Reset the search value.
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          selectedOption === country.name // selectedOption === country.name.toLowerCase() ||
+                            ? "opacity-100"
+                            : "opacity-0"
+                        )}
+                      />
+                      {country.name}
+                    </CommandItem>
+                  ))}
+                </ScrollArea>
+              </CommandGroup>
+            ) : null}
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
