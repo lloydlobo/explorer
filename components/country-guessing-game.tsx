@@ -14,6 +14,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Heading } from "@/components/ui/typography";
 import dataJSON from "@/lib/data.json";
+import { haversine } from "@/lib/haversine-formula";
 import { toast as toaster, useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
 import { cn } from "@/lib/utils";
@@ -362,26 +363,43 @@ function FlagGuessingGame(): JSX.Element {
 
       <>
         {Array.from(guessedCountries).map((guessed, idxGuessed) => (
-          <Heading
+          <div
             key={`guessed-${guessed}-${idxGuessed}-${gameState.selectedCountry?.name}`}
-            className="leading-none my-0 py-0 tracking-widest"
+            className="grid grid-flow-col-dense"
           >
-            <>
-              {guessed &&
-                guessed.split("").map((char, i) => (
-                  <span
-                    key={`char-${i}-${char}-${idxGuessed}-${guessed.length}`}
-                    className={
-                      gameState.selectedCountry?.name.includes(char)
-                        ? "text-green-500"
-                        : ""
-                    }
-                  >
-                    {char}
-                  </span>
-                ))}
-            </>
-          </Heading>
+            <Heading className="leading-none my-0 py-0 tracking-widest">
+              <>
+                {guessed &&
+                  guessed.split("").map((char, i) => (
+                    <span
+                      key={`char-${i}-${char}-${idxGuessed}-${guessed.length}`}
+                      className={
+                        gameState.selectedCountry?.name.includes(char)
+                          ? "text-green-500"
+                          : ""
+                      }
+                    >
+                      {char}
+                    </span>
+                  ))}
+              </>
+            </Heading>
+            <span className="ms-auto px-2">
+              <>
+                {(() => {
+                  const [lat1, lon1] = gameState.countries.find(
+                    (x) => x.name === guessed
+                  )?.latlng ?? [0, 0];
+                  const [lat2, lon2] = gameState?.selectedCountry?.latlng ?? [
+                    0, 0,
+                  ];
+                  return (
+                    <span>{haversine(lat1, lon1, lat2, lon2).toFixed(0)}</span>
+                  );
+                })()}
+              </>
+            </span>
+          </div>
         ))}
       </>
 
