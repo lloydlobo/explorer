@@ -3,12 +3,14 @@
 //
 // NOTE: Keep the exact spelling for enum values of each member, and in lowercase for value.
 
+// Used as a visual layout table type filter, to view entries(countries) as either cards or tables. Defautls to cards
 export enum ViewType {
   Default = "default",
   Cards = "cards",
   Table = "table",
 }
 
+// used to filter countries from REST countries API by region
 export enum Region {
   All = "all",
   Africa = "africa",
@@ -16,4 +18,9 @@ export enum Region {
   Asia = "asia",
   Europe = "europe",
   Oceania = "oceania",
+}
+
+// Used with tanstack query.
+export enum QueryKey {
+  Countries = "countries",
 }
