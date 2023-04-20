@@ -50,18 +50,27 @@ const countryNameEnum = countriesName.reduce((acc, name) => {
 // const countryNameSchema = z.nativeEnum( countriesName.reduce((acc, name) => { return { ...acc, [name]: name }; }, {}));
 const countryNameSchema = z.nativeEnum(countryNameEnum);
 
-/**
- * `gameStateAtom` is the global state of the game.
- *
- * `PrimitiveAtom` is a type of atom that can only be set and read from outside the component.
- */
-const gameStateAtom = atom({
+type InitialGameState = {
+  countries: ICountry[];
+  triesRemaining: number;
+  selectedCountry: ICountry | null;
+  guessedCountries: Set<string>;
+  state: GameState;
+};
+
+const initialGameState: InitialGameState = {
   countries: [] as ICountry[],
   triesRemaining: MAX_TRIES,
   selectedCountry: {} as ICountry | null,
   guessedCountries: new Set<ICountry["name"]>(), // or just collect country.
   state: GameState.Running,
-});
+};
+/**
+ * `gameStateAtom` is the global state of the game.
+ *
+ * `PrimitiveAtom` is a type of atom that can only be set and read from outside the component.
+ */
+const gameStateAtom = atom(initialGameState);
 
 /** `FlagGuessingGame` component renders the flag guessing game.
  *
@@ -429,16 +438,8 @@ export { FlagGuessingGame, gameStateAtom, GameState };
 //
 
 type DirectionsProps = {
-  gameState: GameStateAtomProps;
+  gameState: InitialGameState;
   guessed: ICountry["name"];
-};
-
-type GameStateAtomProps = {
-  countries: ICountry[];
-  triesRemaining: number;
-  selectedCountry: ICountry | null;
-  guessedCountries: Set<string>;
-  state: GameState;
 };
 
 export function Directions({ gameState, guessed }: DirectionsProps) {
