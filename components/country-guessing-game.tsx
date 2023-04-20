@@ -367,7 +367,7 @@ function FlagGuessingGame(): JSX.Element {
             key={`guessed-${guessed}-${idxGuessed}-${gameState.selectedCountry?.name}`}
             className="grid grid-flow-col-dense"
           >
-            <Heading className="leading-none my-0 py-0 tracking-widest">
+            <Heading className="leading-none uppercase my-0 py-0 tracking-widest">
               <>
                 {guessed &&
                   guessed.split("").map((char, i) => (
@@ -384,21 +384,7 @@ function FlagGuessingGame(): JSX.Element {
                   ))}
               </>
             </Heading>
-            <span className="ms-auto px-2">
-              <>
-                {(() => {
-                  const [lat1, lon1] = gameState.countries.find(
-                    (x) => x.name === guessed
-                  )?.latlng ?? [0, 0];
-                  const [lat2, lon2] = gameState?.selectedCountry?.latlng ?? [
-                    0, 0,
-                  ];
-                  return (
-                    <span>{haversine(lat1, lon1, lat2, lon2).toFixed(0)}</span>
-                  );
-                })()}
-              </>
-            </span>
+            <Directions gameState={gameState} guessed={guessed} />
           </div>
         ))}
       </>
@@ -415,7 +401,6 @@ function FlagGuessingGame(): JSX.Element {
             <h2 className="sr-only">You lost!</h2>
           )}
           <pre className="hidden!">
-            {" "}
             {gameState.selectedCountry?.name} <br />{" "}
             {JSON.stringify(guess, null, 2)} <br />{" "}
             <div className="hidden">{JSON.stringify(gameState, null, 2)}</div>{" "}
@@ -443,37 +428,56 @@ export { FlagGuessingGame, gameStateAtom, GameState };
 //
 //
 
-// function showToastWithCountdown(title: string, duration: number) {
-//   let remainingTime = duration / 1000; // convert to seconds
-//   const toastId = toaster({
-//     title: `${title} (${remainingTime})`,
-//     description: "Countdown started!",
-//     // duration: null,
-//     // isClosable: true,
-//   });
+type DirectionsProps = {
+  gameState: GameStateAtomProps;
+  guessed: ICountry["name"];
+};
 
-//   const countdownInterval = setInterval(() => {
-//     remainingTime--;
-//     if (remainingTime > 0) {
-//       toaster.(toastId, {
-//         title: `${title} (${remainingTime})`,
-//         description: `Time remaining: ${remainingTime}`,
-//       });
-//     } else {
-//       clearInterval(countdownInterval);
-//       toaster.close(toastId);
-//       // Perform any action you want to do after the countdown completes.
-//       console.log("Countdown completed!");
-//     }
-//   }, 1000);
-// }
+type GameStateAtomProps = {
+  countries: ICountry[];
+  triesRemaining: number;
+  selectedCountry: ICountry | null;
+  guessedCountries: Set<string>;
+  state: GameState;
+};
 
-// const [resetTimer, setResetTimer] = useState<number>(6);
-// useEffect(() => {
-//   if (resetTimer > 0) {
-//     const timeoutId = setTimeout(() => {
-//       setResetTimer(resetTimer - 1);
-//     }, 1000);
-//     return () => clearTimeout(timeoutId);
-//   }
-// }, [resetTimer]);
+export function Directions({ gameState, guessed }: DirectionsProps) {
+  const guessedCountry = gameState.countries.find(
+    (country) => country.name === guessed
+  );
+  const guessedCoords = guessedCountry?.latlng ?? [0, 0];
+
+  const selectedCountry = gameState.selectedCountry;
+  const targetCoords = selectedCountry?.latlng ?? [0, 0];
+
+  const distance = haversine(
+    guessedCoords[0],
+    guessedCoords[1],
+    targetCoords[0],
+    targetCoords[1]
+  ).toFixed(0);
+
+  let direction = "";
+  const latDiff = targetCoords[0] - guessedCoords[0];
+  const lonDiff = targetCoords[1] - guessedCoords[1];
+  if (latDiff > 0 && lonDiff > 0) {
+    direction = "↗️"; // NE
+  } else if (latDiff > 0 && lonDiff < 0) {
+    direction = "↖️"; // NW
+  } else if (latDiff < 0 && lonDiff < 0) {
+    direction = "↙️"; // SW
+  } else if (latDiff < 0 && lonDiff > 0) {
+    direction = "↘️"; // SE
+  }
+
+  return (
+    <div className="ms-auto text-xs px-2">
+      {gameState.selectedCountry && (
+        <div className="flex items-center">
+          <span className="font-bold">{distance}</span>
+          <span className="ml-2">{direction}</span>
+        </div>
+      )}
+    </div>
+  );
+}
