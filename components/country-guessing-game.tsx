@@ -1,14 +1,10 @@
 import { Button } from "@/components/ui/button";
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command";
 import {
   Popover,
@@ -17,15 +13,17 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Heading } from "@/components/ui/typography";
-import { useToast } from "@/lib/hooks/ui/use-toast";
+import dataJSON from "@/lib/data.json";
+import { toast as toaster, useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import produce from "immer";
 import { atom, useAtom } from "jotai";
-import { Check, ChevronsUpDown, SearchIcon } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import { z } from "zod";
 
 const MAX_TRIES = 6;
 
@@ -39,8 +37,23 @@ enum GameState {
   Canceled,
 }
 
-/** `gameStateAtom` is the global state of the game. */
-// PrimitiveAtom  is a type of atom that can only be set and read from outside the component.
+const countriesName: ICountry["name"][] = dataJSON.map(
+  (country: ICountry) => country.name
+);
+
+const countryNameEnum = countriesName.reduce((acc, name) => {
+  return { ...acc, [name]: name };
+}, {});
+
+// Alternatively, define the enum object directly:
+// const countryNameSchema = z.nativeEnum( countriesName.reduce((acc, name) => { return { ...acc, [name]: name }; }, {}));
+const countryNameSchema = z.nativeEnum(countryNameEnum);
+
+/**
+ * `gameStateAtom` is the global state of the game.
+ *
+ * `PrimitiveAtom` is a type of atom that can only be set and read from outside the component.
+ */
 const gameStateAtom = atom({
   countries: [] as ICountry[],
   triesRemaining: MAX_TRIES,
@@ -49,16 +62,6 @@ const gameStateAtom = atom({
   state: GameState.Running,
 });
 
-// TODO: Add local support:
-//
-// useEffect(() => {
-//   const fetchData = async () => {
-//     const { countries } = await import("@/lib/data/countries.json");
-//     setGameState((state) => produce(state, (draft) => { draft.countries = countries; }));
-//   }; fetchData();
-// }, []);
-//
-//
 /** `FlagGuessingGame` component renders the flag guessing game.
  *
  * @returns {JSX.Element}
@@ -67,6 +70,7 @@ function FlagGuessingGame(): JSX.Element {
   const { toast, dismiss } = useToast();
 
   const [guess, setGuess] = useState<ICountry["name"]>("");
+
   const [gameState, setGameState] = useAtom(gameStateAtom);
 
   /* REGION_START: ComboBox Search... */
@@ -87,6 +91,7 @@ function FlagGuessingGame(): JSX.Element {
       gameState.countries[
         Math.floor(Math.random() * gameState.countries.length)
       ];
+
     setGameState(
       produce((draft) => {
         draft.selectedCountry = randomCountry;
@@ -95,55 +100,70 @@ function FlagGuessingGame(): JSX.Element {
   } // NOTE: The state must be manually updated before this component is rendered.
 
   // Check if the guessed country matches the selected country.
-  function checkGuessCountry(country: ICountry["name"]) {
-    const guessedCountry = country; //.trim().toLowerCase();
+  function checkGuessCountry(guessedCountry: ICountry["name"]) {
     if (guessedCountry === "") {
       toast({
-        title: "Please enter a country name",
+        title:
+          "You entered an empty string. Please enter a valid country name.",
       });
       return;
     }
+
+    try {
+      countryNameSchema.safeParse(guessedCountry);
+    } catch (error) {
+      toast({ title: JSON.stringify(error, null, 2) });
+      console.error(`*** ERROR: ${error} ***`);
+      return;
+    }
+
     const selectedCountry = gameState.selectedCountry?.name;
+    const guessedCountrySet = new Set<string>(gameState.guessedCountries);
+    guessedCountrySet.add(guessedCountry);
+    const triesRemaining = gameState.triesRemaining - 1;
+
     if (guessedCountry === selectedCountry) {
+      toast({ title: "You won!" });
       setGameState(
-        produce((draft) => {
+        produce(gameState, (draft) => {
           draft.state = GameState.Won;
+          draft.guessedCountries = guessedCountrySet;
         })
       );
-
-      toast({ title: "You won!" });
-
+      const timer = 5; // 5 seconds.
+      toast({
+        title: "You won!",
+        description: `Reseting game in ${timer} seconds.`,
+        duration: timer * 1000,
+      });
+      resetGame();
+    } else if (triesRemaining === 0) {
+      toast({ title: "You lost!" });
+      setGameState(
+        produce(gameState, (draft) => {
+          draft.state = GameState.Lost;
+          draft.triesRemaining = triesRemaining;
+          draft.guessedCountries = guessedCountrySet;
+        })
+      );
       resetGame();
     } else {
-      // Get an instance of guessedCountries and allocate/add new guessedCountry.
-      const guessedCountrySet = new Set<string>(gameState.guessedCountries);
-      guessedCountrySet.add(guessedCountry);
-      const triesRemaining = gameState.triesRemaining - 1;
-      if (triesRemaining === 0) {
-        setGameState(
-          produce((draft) => {
-            draft.state = GameState.Lost;
-            draft.triesRemaining = triesRemaining;
-            draft.guessedCountries = guessedCountrySet;
-          })
-        );
-        toast({ title: "You lost!" });
-        resetGame();
-      } else {
-        setGameState(
-          produce((draft) => {
-            draft.triesRemaining = triesRemaining;
-            draft.guessedCountries = guessedCountrySet;
-          })
-        );
-      }
+      setGameState(
+        produce(gameState, (draft) => {
+          draft.triesRemaining = triesRemaining;
+          draft.guessedCountries = guessedCountrySet;
+        })
+      );
     }
-    setGuess(""); // Reset the guess.
+
+    // Reset the guess.
+    setGuess("");
   } // end of selectRandomCountry.
 
-  function processTurnAndClear(country: ICountry["name"]) {
+  function handleGuessSubmit(country: ICountry["name"]) {
     checkGuessCountry(country);
     setGuess("");
+    setSelectedOptionSearch("");
   }
 
   // Reset the game.
@@ -174,8 +194,19 @@ function FlagGuessingGame(): JSX.Element {
 
   // Implements combobox user event handling and utilize `processTurnAndClear`
   function handleComboSelectSearch(value: string) {
+    try {
+      const parsedCountryValue = countryNameSchema.safeParse(value);
+      if (!parsedCountryValue.success) {
+        throw new Error("Invalid country name");
+      }
+    } catch (err) {
+      toast({ title: JSON.stringify(err, null, 2) });
+      return;
+    }
+
     setGuess(value);
-    processTurnAndClear(value);
+    setValueSearch("");
+    handleGuessSubmit(value);
   }
 
   /**
@@ -247,8 +278,8 @@ function FlagGuessingGame(): JSX.Element {
 
       <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
         <Button
-          onClick={() => processTurnAndClear(guess)}
-          className="rounded-none"
+          onClick={() => handleGuessSubmit(guess)}
+          className="rounded-none hidden"
           variant="default"
         >
           Guess
@@ -268,7 +299,6 @@ function FlagGuessingGame(): JSX.Element {
           It renders a button that displays a dropdown of the list of countries in a Command UI.
           The user can search for a country by typing in the input box and select a country by clicking on it.
           @returns The CommandCombobox component.
-          @beta
         */}
         <Popover open={openSearch} onOpenChange={setOpenSearch}>
           <PopoverTrigger asChild>
@@ -282,16 +312,19 @@ function FlagGuessingGame(): JSX.Element {
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
+
           <PopoverContent className="min-w-[200px] w-full max-h-[350px]! p-0">
             <Command>
-              {guess}
               <CommandInput
+                autoFocus={true}
+                placeholder="Search a country…"
+                // onBlur={(e) => setValueSearch("")}
+                value={valueSearch}
                 onValueChange={(search) => {
-                  setValueSearch(search);
                   setOpenSearch(true);
                   setGuess(search);
+                  setValueSearch(search);
                 }}
-                placeholder="Search a country…"
               />
               <CommandEmpty>No countries found.</CommandEmpty>
               {gameState.countries ? (
@@ -380,3 +413,49 @@ function FlagGuessingGame(): JSX.Element {
 } // end of CountryGuessingGame.
 
 export { FlagGuessingGame, gameStateAtom, GameState };
+
+// TODO: Add local support:
+//
+// useEffect(() => {
+//   const fetchData = async () => {
+//     const { countries } = await import("@/lib/data/countries.json");
+//     setGameState((state) => produce(state, (draft) => { draft.countries = countries; }));
+//   }; fetchData();
+// }, []);
+//
+//
+
+// function showToastWithCountdown(title: string, duration: number) {
+//   let remainingTime = duration / 1000; // convert to seconds
+//   const toastId = toaster({
+//     title: `${title} (${remainingTime})`,
+//     description: "Countdown started!",
+//     // duration: null,
+//     // isClosable: true,
+//   });
+
+//   const countdownInterval = setInterval(() => {
+//     remainingTime--;
+//     if (remainingTime > 0) {
+//       toaster.(toastId, {
+//         title: `${title} (${remainingTime})`,
+//         description: `Time remaining: ${remainingTime}`,
+//       });
+//     } else {
+//       clearInterval(countdownInterval);
+//       toaster.close(toastId);
+//       // Perform any action you want to do after the countdown completes.
+//       console.log("Countdown completed!");
+//     }
+//   }, 1000);
+// }
+
+// const [resetTimer, setResetTimer] = useState<number>(6);
+// useEffect(() => {
+//   if (resetTimer > 0) {
+//     const timeoutId = setTimeout(() => {
+//       setResetTimer(resetTimer - 1);
+//     }, 1000);
+//     return () => clearTimeout(timeoutId);
+//   }
+// }, [resetTimer]);
