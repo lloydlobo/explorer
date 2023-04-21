@@ -38,9 +38,9 @@ export default function Navbar() {
             </Link>
           </NavigationMenuItem>
           <NavigationMenuItem>
-            <Link href="/about" legacyBehavior passHref>
+            <Link href="/pro" legacyBehavior passHref>
               <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                About
+                Pro
               </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
@@ -59,6 +59,7 @@ export default function Navbar() {
     </nav>
   );
 }
+
 // Auth component using <SignedIn> & <SignedOut>.
 //
 // The SignedIn and SignedOut components are used to control rendering depending

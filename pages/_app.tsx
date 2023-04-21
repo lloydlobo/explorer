@@ -10,7 +10,10 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/react";
 
 // If loading a variable font, you don't need to specify the font weight
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 const queryClient = new QueryClient();
 
@@ -29,6 +32,7 @@ export default function App({ Component, pageProps }: AppProps) {
       <style jsx global>{`
         html {
           font-family: ${inter.style.fontFamily};
+          @apply font-[var(--font-inter)];
         }
       `}</style>
 

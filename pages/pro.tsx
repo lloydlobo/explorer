@@ -1,6 +1,7 @@
 import { useAuth } from "@clerk/nextjs";
+import { NextPage } from "next";
 
-export default function Example() {
+const ProPage: NextPage = ({}) => {
   const { isLoaded, userId, sessionId, getToken } = useAuth();
 
   // In case the user signs out while on the page.
@@ -13,4 +14,6 @@ export default function Example() {
       Hello, {userId} your current active session is {sessionId}
     </div>
   );
-}
+};
+
+export default ProPage;
