@@ -36,11 +36,11 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   const urlTemplateString = `${API_BASE_URL}/all`;
   const url = new URL(API_BASE_URL);
   url.pathname = "all";
-  console.log({
-    url,
-    urlTemplateString,
-    matches: url.toString() === urlTemplateString,
-  });
+  // console.log({
+  //   url,
+  //   urlTemplateString,
+  //   matches: url.toString() === urlTemplateString,
+  // });
 
   const {
     data: cachedCountries, // use default value if there's no cached data yet.
