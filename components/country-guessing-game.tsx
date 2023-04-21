@@ -469,10 +469,8 @@ export function Directions({ gameState, guessed }: DirectionsProps) {
   const targetCoords = selectedCountry?.latlng ?? [0, 0];
 
   const distance = haversine(
-    guessedCoords[0],
-    guessedCoords[1],
-    targetCoords[0],
-    targetCoords[1]
+    [guessedCoords[0], guessedCoords[1]],
+    [targetCoords[0], targetCoords[1]]
   ).toFixed(0);
 
   let direction = "";
