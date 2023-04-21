@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
 import dataJSON from "@/lib/data.json";
 import { haversine } from "@/lib/haversine-formula";
@@ -25,6 +26,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { z } from "zod";
+import { Indicator } from "./ui/indicator";
 
 const MAX_TRIES = 6;
 
@@ -264,12 +266,13 @@ function FlagGuessingGame(): JSX.Element {
   const imageUrl = flag || flags?.png || "/assets/placeholders/flag.jpg" || require("../public/assets/placeholders/flag.jpg"); // prettier-ignore
 
   return (
-    <section className="grid gap-4 justify-center">
+    <section className="grid mt-6 gap-8 justify-center">
       <Heading
         color={"default"}
         fontWeight={"bold"}
         variant="h1"
-        className="flex text-2xl lg:text-4xl justify-center uppercase"
+        className="uppercase text-3xl font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block"
+        // className="flex text-2xl md:text-3xl justify-center uppercase"
       >
         Guess the country
       </Heading>
@@ -286,22 +289,7 @@ function FlagGuessingGame(): JSX.Element {
         </AspectRatio>
       </div>
 
-      <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
-        <Button
-          onClick={() => handleGuessSubmit(guess)}
-          className="rounded-none hidden"
-          variant="default"
-        >
-          Guess
-        </Button>
-        <Button
-          onClick={selectRandomCountry}
-          className="rounded-none"
-          variant="outline"
-        >
-          Skip
-        </Button>
-
+      <div className="grid gap-y-2 relative rounded-lg! min-w-[300px] outline! outline-slate-200! dark:outline-slate-700! overflow-clip!">
         {/*
           A CommandCombobox component that allows the user to search and select a country.
           @remarks
@@ -316,8 +304,13 @@ function FlagGuessingGame(): JSX.Element {
               variant="outline"
               role="combobox"
               aria-expanded={openSearch}
-              className="min-w-[200px] justify-between"
+              className="min-w-[200px] relative justify-between"
             >
+              {guessedCountries.length === 0 ? (
+                <div className="absolute -top-2.5 opacity-90 right-3">
+                  <Indicator />
+                </div>
+              ) : null}
               {selectedOptionSearch || "Select a country…"}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
@@ -339,7 +332,7 @@ function FlagGuessingGame(): JSX.Element {
               <CommandEmpty>No countries found.</CommandEmpty>
               {gameState.countries ? (
                 <CommandGroup>
-                  <ScrollArea className="h-[200px] w-[350px] rounded-md border p-4">
+                  <ScrollArea className="h-[200px] w-full min-w-[350px] rounded-md border p-4">
                     {gameState.countries.map((country, idxCountry) => (
                       <CommandItem
                         aria-disabled={isCountryAlreadyGuessedSearch(country)}
@@ -368,38 +361,62 @@ function FlagGuessingGame(): JSX.Element {
             </Command>
           </PopoverContent>
         </Popover>
+
+        <Button
+          onClick={() => handleGuessSubmit(guess)}
+          className="hidden"
+          variant="default"
+        >
+          Guess
+        </Button>
+        <Button
+          onClick={selectRandomCountry}
+          className="hidden"
+          variant="outline"
+        >
+          Skip
+        </Button>
       </div>
 
       <>
-        {Array.from(guessedCountries).map((guessed, idxGuessed) => (
-          <div
-            key={`guessed-${guessed}-${idxGuessed}-${gameState.selectedCountry?.name}`}
-            className="grid grid-flow-col-dense"
-          >
-            <Heading className="leading-none uppercase my-0 py-0 tracking-widest">
-              <>
-                {guessed &&
-                  guessed.split("").map((char, i) => (
-                    <span
-                      key={`char-${i}-${char}-${idxGuessed}-${guessed.length}`}
-                      className={
-                        gameState.selectedCountry?.name.includes(char)
-                          ? "text-green-500"
-                          : ""
-                      }
-                    >
-                      {char}
-                    </span>
-                  ))}
-              </>
-            </Heading>
-            <Directions gameState={gameState} guessed={guessed} />
-          </div>
-        ))}
+        <div className="grid gap-y-2 md:gap-y-3">
+          {Array.from(Array(MAX_TRIES).keys()).map((idxGuessed) => {
+            const country = guessedCountries[idxGuessed];
+
+            return (
+              <div
+                key={`guessed-${country}-${idxGuessed}-${gameState.selectedCountry?.name}`}
+                className="grid grid-flow-col-dense items-baseline"
+              >
+                {country ? (
+                  <>
+                    <Heading className="leading-none uppercase my-0 py-0 tracking-widest">
+                      {country.split("").map((char, i) => (
+                        <span
+                          key={`char-${i}-${char}-${idxGuessed}-${country.length}`}
+                          className={
+                            gameState.selectedCountry?.name.includes(char)
+                              ? "text-green-500"
+                              : ""
+                          }
+                        >
+                          {char}
+                        </span>
+                      ))}
+                    </Heading>
+                    <Directions gameState={gameState} guessed={country} />
+                  </>
+                ) : (
+                  <Skeleton className="min-w-[100px] min-h-[22px] rounded-sm" />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </>
 
       {/* debug only*/}
-      <div className="relative">
+      <div className="relative opacity-0 hover:opacity-40">
         <div className="grid opacity-40 grid-flow-col! absolute top-4 text-xs space-x-4! justify-center">
           <p>Tries Remaining: {triesRemaining}</p>
           <p>Guessed Countries: {guessedCountries.join(", ")}</p>

@@ -6,9 +6,14 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Provider } from "jotai";
 import type { AppProps } from "next/app";
 import { Inter } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { Analytics } from "@vercel/analytics/react";
 
 // If loading a variable font, you don't need to specify the font weight
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 const queryClient = new QueryClient();
 
@@ -27,14 +32,18 @@ export default function App({ Component, pageProps }: AppProps) {
       <style jsx global>{`
         html {
           font-family: ${inter.style.fontFamily};
+          @apply font-[var(--font-inter)];
         }
       `}</style>
 
       <QueryClientProvider client={queryClient}>
         <Provider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <Component {...pageProps} />
-            <Toaster />
+            <ClerkProvider {...pageProps}>
+              <Component {...pageProps} />
+              <Toaster />
+              <Analytics />
+            </ClerkProvider>
           </ThemeProvider>
           <ReactQueryDevtools initialIsOpen={false} />
         </Provider>
