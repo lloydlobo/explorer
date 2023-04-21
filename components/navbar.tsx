@@ -18,14 +18,23 @@ import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export default function Navbar() {
   return (
-    <nav className="flex justify-between items-center">
+    <nav className="flex text-sm justify-between items-center">
       <Link
         href="/"
         legacyBehavior
         passHref
-        className={`text-lg font-bold logo ${navigationMenuTriggerStyle()}`}
+        className={`${navigationMenuTriggerStyle()}`}
       >
-        Explorer
+        <div className="text-base font-black tracking-wide uppercase!">
+          <span className="text-green-400!">e</span>
+          <span className="text-green-400!">x</span>
+          <span className="text-green-400!">p</span>
+          <span className="text-green-400">l</span>
+          <span className="text-green-400!">o</span>
+          <span className="text-green-400!">r</span>
+          <span className="text-green-400!">e</span>
+          <span className="text-green-400!">r</span>
+        </div>
       </Link>
 
       <NavigationMenu>
@@ -54,8 +63,8 @@ export default function Navbar() {
         </NavigationMenuList>
       </NavigationMenu>
 
-      <ModeToggle />
       <Auth />
+      <ModeToggle />
     </nav>
   );
 }

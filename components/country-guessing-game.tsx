@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
 import dataJSON from "@/lib/data.json";
 import { haversine } from "@/lib/haversine-formula";
@@ -287,21 +288,6 @@ function FlagGuessingGame(): JSX.Element {
       </div>
 
       <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
-        <Button
-          onClick={() => handleGuessSubmit(guess)}
-          className="rounded-none hidden"
-          variant="default"
-        >
-          Guess
-        </Button>
-        <Button
-          onClick={selectRandomCountry}
-          className="rounded-none"
-          variant="outline"
-        >
-          Skip
-        </Button>
-
         {/*
           A CommandCombobox component that allows the user to search and select a country.
           @remarks
@@ -368,34 +354,58 @@ function FlagGuessingGame(): JSX.Element {
             </Command>
           </PopoverContent>
         </Popover>
+
+        <Button
+          onClick={() => handleGuessSubmit(guess)}
+          className="rounded-none hidden"
+          variant="default"
+        >
+          Guess
+        </Button>
+        <Button
+          onClick={selectRandomCountry}
+          className="rounded-none"
+          variant="outline"
+        >
+          Skip
+        </Button>
       </div>
 
       <>
-        {Array.from(guessedCountries).map((guessed, idxGuessed) => (
-          <div
-            key={`guessed-${guessed}-${idxGuessed}-${gameState.selectedCountry?.name}`}
-            className="grid grid-flow-col-dense"
-          >
-            <Heading className="leading-none uppercase my-0 py-0 tracking-widest">
-              <>
-                {guessed &&
-                  guessed.split("").map((char, i) => (
-                    <span
-                      key={`char-${i}-${char}-${idxGuessed}-${guessed.length}`}
-                      className={
-                        gameState.selectedCountry?.name.includes(char)
-                          ? "text-green-500"
-                          : ""
-                      }
-                    >
-                      {char}
-                    </span>
-                  ))}
-              </>
-            </Heading>
-            <Directions gameState={gameState} guessed={guessed} />
-          </div>
-        ))}
+        <div className="grid gap-y-2 md:gap-y-3">
+          {Array.from(Array(MAX_TRIES).keys()).map((idxGuessed) => {
+            const country = guessedCountries[idxGuessed];
+
+            return (
+              <div
+                key={`guessed-${country}-${idxGuessed}-${gameState.selectedCountry?.name}`}
+                className="grid grid-flow-col-dense"
+              >
+                {country ? (
+                  <>
+                    <Heading className="leading-none uppercase my-0 py-0 tracking-widest">
+                      {country.split("").map((char, i) => (
+                        <span
+                          key={`char-${i}-${char}-${idxGuessed}-${country.length}`}
+                          className={
+                            gameState.selectedCountry?.name.includes(char)
+                              ? "text-green-500"
+                              : ""
+                          }
+                        >
+                          {char}
+                        </span>
+                      ))}
+                    </Heading>
+                    <Directions gameState={gameState} guessed={country} />
+                  </>
+                ) : (
+                  <Skeleton className="min-w-[100px] min-h-[20px] rounded-md" />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </>
 
       {/* debug only*/}
