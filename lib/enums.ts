@@ -24,3 +24,8 @@ export enum Region {
 export enum QueryKey {
   Countries = "countries",
 }
+
+export enum LocalStorageKey {
+  GameState = "GameState",
+  LastRoundTimestamp = "LastRoundTimestamp",
+}

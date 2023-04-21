@@ -15,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
 import dataJSON from "@/lib/data.json";
-import { haversine } from "@/lib/haversine-formula";
+import { haversine } from "@/lib/haversine-distance";
 import { toast as toaster, useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
 import { cn } from "@/lib/utils";
