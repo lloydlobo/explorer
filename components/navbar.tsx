@@ -14,6 +14,7 @@ import { Toggle } from "@/components/ui/toggle";
 import { Italic, Moon, SunMoon } from "lucide-react";
 import Link from "next/link";
 import React from "react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export default function Navbar() {
   return (
@@ -54,6 +55,25 @@ export default function Navbar() {
       </NavigationMenu>
 
       <ModeToggle />
+      <Auth />
     </nav>
+  );
+}
+// Auth component using <SignedIn> & <SignedOut>.
+//
+// The SignedIn and SignedOut components are used to control rendering depending
+// on whether or not a visitor is signed in.
+//
+// https://docs.clerk.dev/frontend/react/signedin-and-signedout
+function Auth() {
+  return (
+    <div className={""}>
+      <SignedOut>
+        <Link href="/sign-in">Sign in</Link>
+      </SignedOut>
+      <SignedIn>
+        <UserButton userProfileUrl={"/user"} afterSignOutUrl="/" />
+      </SignedIn>
+    </div>
   );
 }
