@@ -67,6 +67,12 @@ type InitialGameState = {
   selectedCountry: ICountry | null;
   guessedCountries: Set<string>;
   state: GameState;
+  remainingTime: number;
+  gameStartedAt: Date | null;
+  gameResetAt: Date | null;
+  readonly maxTries: number;
+  readonly gameDuration: number;
+  readonly graceTimeAtTry: number; // Add 10 seconds if guessed at a try.
 };
 
 const initialGameState: InitialGameState = {
@@ -75,6 +81,12 @@ const initialGameState: InitialGameState = {
   selectedCountry: {} as ICountry | null,
   guessedCountries: new Set<ICountry["name"]>(), // or just collect country.
   state: GameState.Running,
+  remainingTime: TIME_LIMIT,
+  gameStartedAt: null,
+  gameResetAt: null,
+  maxTries: MAX_TRIES,
+  gameDuration: TIME_LIMIT,
+  graceTimeAtTry: 5,
 };
 /**
  * `gameStateAtom` is the global state of the game.
@@ -108,18 +120,8 @@ function FlagGuessingGame(): JSX.Element {
   /* REGION_END: ComboBox Search... */
 
   const startGameRef = useRef<HTMLButtonElement | null>(null);
-  type GameTimeStamps = {
-    gameStartedAt: Date;
-    gameResetAt: Date;
-  };
 
   /* REGION_START: Contdown timer.. */
-  const [gameTimeStamps, setGameTimeStamps] = useState<GameTimeStamps>(
-    {} as GameTimeStamps
-  );
-  const [remainingTime, setRemainingTime] = useState(() => {
-    return TIME_LIMIT;
-  });
   const [isGamePaused, setIsGamePaused] = useState(false);
   const [isGameRunning, setIsGameRunning] = useState(false);
 
@@ -128,7 +130,7 @@ function FlagGuessingGame(): JSX.Element {
   // }, [remainingTime]);
 
   const handleTimeout = () => {
-    setGameTimeStamps(
+    setGameState(
       produce((draft) => {
         draft.gameResetAt = new Date();
       })
@@ -189,7 +191,7 @@ function FlagGuessingGame(): JSX.Element {
       return;
     }
 
-    setGameTimeStamps(
+    setGameState(
       produce((draft) => {
         draft.gameStartedAt = new Date();
       })
@@ -200,8 +202,6 @@ function FlagGuessingGame(): JSX.Element {
     // focus on the input.
     if (searchRef.current) {
       searchRef.current.focus(); // searchRef.current.blur();
-    } else {
-      toast({ title: "", description: "searchRef.current is null" });
     }
   };
 
@@ -292,6 +292,13 @@ function FlagGuessingGame(): JSX.Element {
   } // end of selectRandomCountry.
 
   function handleGuessSubmit(country: ICountry["name"]) {
+    toast({ title: `You guessed: ${country}` });
+    // setRemainingTime((prev) => prev + 10); // use produce from immer here...
+    setGameState(
+      produce((draft) => {
+        draft.remainingTime += 10;
+      })
+    );
     checkGuessCountry(country);
     setGuess("");
     setSelectedOptionSearch("");
@@ -305,9 +312,10 @@ function FlagGuessingGame(): JSX.Element {
       setIsGameRunning(false); // FIXME: Use this later, to avoid sudden shifts of heading and timer.
       setGameState(
         produce((draft) => {
-          draft.triesRemaining = MAX_TRIES;
+          draft.triesRemaining = gameState.maxTries;
           draft.guessedCountries = new Set<string>();
           draft.state = GameState.Canceled; // HACK: IT works when this is `Playing`.
+          draft.gameResetAt = new Date();
         })
       );
       setIsGamePaused(false);
@@ -322,9 +330,9 @@ function FlagGuessingGame(): JSX.Element {
         selectedCountry: gameState.selectedCountry,
         guessedCountries: gameState.guessedCountries,
         state: gameState.state,
-        timeRemaining: remainingTime,
-        gameStartedAt: gameTimeStamps.gameStartedAt,
-        gameResetAt: gameTimeStamps.gameResetAt,
+        timeRemaining: gameState.remainingTime,
+        gameStartedAt: gameState.gameStartedAt,
+        gameResetAt: gameState.gameResetAt,
       };
 
       gameDataArray.push(gameData);
@@ -333,13 +341,11 @@ function FlagGuessingGame(): JSX.Element {
         JSON.stringify(gameDataArray)
       );
 
-      setRemainingTime(TIME_LIMIT);
+      // setRemainingTime(TIME_LIMIT);
       selectRandomCountry();
 
       if (startGameRef.current) {
         startGameRef.current.focus();
-      } else {
-        toast({ title: "", description: "startGameRef.current is null" });
       }
     }, timeout);
   }
@@ -449,7 +455,7 @@ function FlagGuessingGame(): JSX.Element {
               scroll-m-20 mt-10 uppercase text-4xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block`}
           >
             <CountdownTimer
-              initialTime={remainingTime}
+              // initialTime={gameState.remainingTime}
               onTimeout={handleTimeout}
             />
           </div>
@@ -485,7 +491,8 @@ function FlagGuessingGame(): JSX.Element {
                  md:hidden block font-bold text-lg`}
               >
                 <CountdownTimer
-                  initialTime={remainingTime}
+                  // gameState={gameState}
+                  // initialTime={gameState.remainingTime}
                   onTimeout={handleTimeout}
                 />
               </div>
@@ -618,7 +625,7 @@ function FlagGuessingGame(): JSX.Element {
 
       <>
         <div className="grid gap-y-2 md:gap-y-3">
-          {Array.from(Array(MAX_TRIES).keys()).map((idxGuessed) => {
+          {Array.from(Array(gameState.maxTries).keys()).map((idxGuessed) => {
             const country = guessedCountries[idxGuessed];
 
             return (
@@ -737,32 +744,65 @@ export function Directions({ gameState, guessed }: DirectionsProps) {
 }
 
 type CountdownTimerProps = {
-  initialTime: number;
+  // initialTime: number;
   onTimeout: () => void;
 };
 
-function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
-  const [time, setTime] = useState(initialTime);
+function CountdownTimer({ onTimeout }: CountdownTimerProps) {
+  // const [time, setTime] = useState(initialTime);
+  const [gameState, setGameState] = useAtom(gameStateAtom);
   const [mounted, setMounted] = useState(true);
+  const [guessCount, setGuessCount] = useState(
+    Array.from(gameState.guessedCountries).length
+  );
+
+  // const guessedCountries = gameState.guessedCountries;
+  // const counter = Array.from(Array(MAX_TRIES).keys()).length;
+
+  // const initialTime = counter * COUNTDOWN_INTERVAL;
+
+  useEffect(() => {
+    const updatedGuessCount = Array.from(gameState.guessedCountries).length;
+    if (
+      guessCount !== updatedGuessCount &&
+      gameState.remainingTime + gameState.graceTimeAtTry <=
+        gameState.gameDuration
+    ) {
+      setGameState(
+        produce((draft) => {
+          draft.remainingTime =
+            gameState.remainingTime + gameState.graceTimeAtTry;
+        })
+      );
+    }
+    setGuessCount(updatedGuessCount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState.guessedCountries]);
 
   useEffect(() => {
     if (mounted) {
       const timer = setInterval(() => {
-        setTime((prevTime: number) => prevTime - 1);
+        // setGameState((prevTime: number) => prevTime - 1);
+        setGameState(
+          produce((draft) => {
+            draft.remainingTime = gameState.remainingTime - 1;
+          })
+        );
       }, 1000);
       return () => {
         clearInterval(timer);
       };
     }
-  }, [mounted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, gameState.remainingTime]);
 
   useEffect(() => {
-    if (time <= 0 && mounted) {
+    if (gameState.remainingTime <= 0 && mounted) {
       setMounted(false);
       onTimeout();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [time]);
+  }, [gameState.remainingTime]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -785,7 +825,9 @@ function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
   };
 
   return (
-    <span className={`${getTimeAwareColor(time)}`}>{formatTime(time)}</span>
+    <span className={`${getTimeAwareColor(gameState.remainingTime)}`}>
+      {formatTime(gameState.remainingTime)}
+    </span>
   );
 }
 
