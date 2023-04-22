@@ -224,13 +224,14 @@ function FlagGuessingGame(): JSX.Element {
   }
 
   // Reset the game.
-  function resetGame(timeout: number = 3000) {
+  function resetGame(timeout: number = 4000) {
     setTimeout(() => {
       // Reset the remaining time.
       // setRemainingTime(() => { return 60 / 2; }
+      setIsGameRunning(false);
       toast({
         title: "Resetting Game",
-        duration: 1500,
+        duration: 3500,
       });
 
       setGameState(
@@ -241,7 +242,6 @@ function FlagGuessingGame(): JSX.Element {
         })
       );
 
-      setIsGameRunning(false);
       selectRandomCountry();
 
       if (startGameRef.current) {
