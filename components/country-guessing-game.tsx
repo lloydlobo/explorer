@@ -336,7 +336,10 @@ function FlagGuessingGame(): JSX.Element {
     <section className="flex flex-col w-[80vw] md:w-[60vw] mx-auto mt-6 gap-8 justify-center">
       <div className="grid">
         {isGameRunning ? (
-          <div className=" scroll-m-20 mt-10 uppercase text-4xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block">
+          <div
+            className={`
+              scroll-m-20 mt-10 uppercase text-4xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block`}
+          >
             <CountdownTimer
               initialTime={remainingTime}
               onTimeout={handleTimeout}
@@ -363,7 +366,7 @@ function FlagGuessingGame(): JSX.Element {
             src={imageUrl}
             alt={randomCountry?.name ?? "Flag"}
             className={`${
-              isGameRunning ? "blur-0" : "blur-2xl"
+              isGameRunning ? "blur-0" : "blur-xl dark:blur-2xl"
             } rounded-md shadow w-[250px] aspect-video object-cover`}
           />
           <div className="w-full mt-3 grid place-content-center">
@@ -406,7 +409,17 @@ function FlagGuessingGame(): JSX.Element {
         </AspectRatio>
       </div>
 
-      <div className="grid gap-y-2 relative rounded-lg! min-w-[300px] outline! outline-slate-200! dark:outline-slate-700! overflow-clip!">
+      <div
+        onClick={(e) => {
+          if (!isGameRunning && startGameRef.current) {
+            startGameRef.current.focus();
+            toast({
+              title: "You must start the game first!",
+            });
+          }
+        }}
+        className="grid gap-y-2 relative rounded-lg! min-w-[300px] outline! outline-slate-200! dark:outline-slate-700! overflow-clip!"
+      >
         {/*
           A CommandCombobox component that allows the user to search and select a country.
           @remarks
@@ -416,7 +429,11 @@ function FlagGuessingGame(): JSX.Element {
           @returns The CommandCombobox component.
         */}
         <Popover open={openSearch} onOpenChange={setOpenSearch}>
-          <PopoverTrigger disabled={!isGameRunning} asChild>
+          <PopoverTrigger
+            // className="disabled:outline disabled:outline-1 disabled-outline-slate-200 disabled:dark:outline-slate-700"
+            disabled={!isGameRunning}
+            asChild
+          >
             <Button
               id="search-country"
               ref={searchRef}
@@ -652,7 +669,21 @@ function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
     }${remainingSeconds}`;
   };
 
-  return <>{formatTime(time)}</>;
+  const getTimeAwareColor = (remainingTime: number) => {
+    if (remainingTime <= 5) {
+      return cn("text-red-500 animate-pulse dark:text-red-400");
+    } else if (remainingTime > 5 && remainingTime <= 10) {
+      return cn("text-red-500 dark:text-red-400");
+    } else if (remainingTime <= 20) {
+      return cn("text-orange-500 dark:text-orange-400");
+    } else {
+      return cn("");
+    }
+  };
+
+  return (
+    <span className={`${getTimeAwareColor(time)}`}>{formatTime(time)}</span>
+  );
 }
 
 // {/* <div // className="timer bg-red-300" style={{ background: `hsl(${progress * 60}, 100, 50)` }} */}
