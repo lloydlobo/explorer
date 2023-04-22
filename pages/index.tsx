@@ -43,6 +43,7 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
         draft.selectedCountry = cachedCountries[random];
       })
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cachedCountries, setGameState]);
 
   return (

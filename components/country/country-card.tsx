@@ -11,6 +11,7 @@ import {
 import { Indicator } from "@/components/ui/indicator";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
+import Image from "next/image";
 import Link from "next/link";
 
 // Component that renders a single country as a card in a grid
@@ -39,9 +40,11 @@ export function CountryCard({ country }: CountryCardProps) {
       </div>
       <Card>
         <AspectRatio ratio={16 / 9}>
-          <img
+          <Image
             src={country.flag}
             alt={`Flag of ${country.name}`}
+            width={600}
+            height={450}
             className="object-cover rounded-md opacity-90 hover:opacity-100 w-[600px] md:w-[450px] aspect-video"
           />
         </AspectRatio>

@@ -761,6 +761,7 @@ function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
       setMounted(false);
       onTimeout();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [time]);
 
   const formatTime = (seconds: number) => {
