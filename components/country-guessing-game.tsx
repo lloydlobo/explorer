@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
 import dataJSON from "@/lib/data.json";
+import { LocalStorageKey } from "@/lib/enums";
 import { haversine } from "@/lib/haversine-distance";
 import { toast as toaster, useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
@@ -99,6 +100,11 @@ function FlagGuessingGame(): JSX.Element {
   /* REGION_END: ComboBox Search... */
 
   const startGameRef = useRef<HTMLButtonElement | null>(null);
+  type GameTimeStamps = {
+    gameStartedAt: Date;
+    gameResetAt: Date;
+  };
+  const [gameTimeStamps, setGameTimeStamps] = useState<GameTimeStamps>({});
   const [remainingTime, setRemainingTime] = useState(() => {
     return 60 / 2;
   });
@@ -113,6 +119,11 @@ function FlagGuessingGame(): JSX.Element {
 
   const handleTimeout = () => {
     setIsGameRunning(false);
+    setGameTimeStamps(
+      produce((draft) => {
+        draft.gameResetAt = new Date();
+      })
+    );
     // handle game over logic here
     // toast({
     //   title: "Time's up!",
@@ -122,6 +133,25 @@ function FlagGuessingGame(): JSX.Element {
   };
 
   const handleStartGame = () => {
+    const gameDataArray = getGameDataArray();
+    if (gameDataArray.length > 0) {
+      toast({
+        title: `You have already played todat. Please come back tomorrow.`,
+        description: (
+          <Link className="underline font-bold" href="/pro">
+            Get Pro to remove limits.
+          </Link>
+        ),
+      });
+      return;
+    }
+
+    setGameTimeStamps(
+      produce((draft) => {
+        draft.gameStartedAt = new Date();
+      })
+    );
+
     setIsGameRunning(true);
     // focus on the input.
     if (searchRef.current) {
@@ -225,6 +255,7 @@ function FlagGuessingGame(): JSX.Element {
 
   // Reset the game.
   function resetGame(timeout: number = 4000) {
+    const gameDataArray = getGameDataArray();
     setTimeout(() => {
       // Reset the remaining time.
       // setRemainingTime(() => { return 60 / 2; }
@@ -242,6 +273,23 @@ function FlagGuessingGame(): JSX.Element {
         })
       );
 
+      const gameData = {
+        countries: gameState.countries,
+        triesRemaining: gameState.triesRemaining,
+        selectedCountry: gameState.selectedCountry,
+        guessedCountries: gameState.guessedCountries,
+        state: gameState.state,
+        timeRemaining: remainingTime,
+        gameStartedAt: gameTimeStamps.gameStartedAt,
+        gameResetAt: gameTimeStamps.gameResetAt,
+      };
+
+      gameDataArray.push(gameData);
+      localStorage.setItem(
+        LocalStorageKey.GameState,
+        JSON.stringify(gameDataArray)
+      );
+
       selectRandomCountry();
 
       if (startGameRef.current) {
@@ -254,6 +302,22 @@ function FlagGuessingGame(): JSX.Element {
 
   /////////////////////////////////////////////////////////////////////////////
   // REGION_END: GAME LOGIC
+  /////////////////////////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_START: GAME DATABASES
+  /////////////////////////////////////////////////////////////////////////////
+
+  function getGameDataArray() {
+    const gameDataJson = localStorage.getItem(LocalStorageKey.GameState);
+    if (!gameDataJson) {
+      return [];
+    }
+    return JSON.parse(gameDataJson);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_END: GAME DATABASES
   /////////////////////////////////////////////////////////////////////////////
 
   /////////////////////////////////////////////////////////////////////////////
