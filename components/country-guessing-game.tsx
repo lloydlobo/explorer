@@ -6,27 +6,31 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
+import { Indicator } from "@/components/ui/indicator";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
 import dataJSON from "@/lib/data.json";
-import { haversine } from "@/lib/haversine-formula";
+import { haversine } from "@/lib/haversine-distance";
 import { toast as toaster, useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import produce from "immer";
 import { atom, useAtom } from "jotai";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { ViewIcon } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
 import { z } from "zod";
-import { Indicator } from "./ui/indicator";
 
 const MAX_TRIES = 6;
 
@@ -87,11 +91,45 @@ function FlagGuessingGame(): JSX.Element {
 
   /* REGION_START: ComboBox Search... */
 
+  const searchRef = useRef<HTMLButtonElement | null>(null);
   const [openSearch, setOpenSearch] = useState(false);
   const [selectedOptionSearch, setSelectedOptionSearch] = useState("");
   const [valueSearch, setValueSearch] = useState("");
 
   /* REGION_END: ComboBox Search... */
+
+  const startGameRef = useRef<HTMLButtonElement | null>(null);
+  const [remainingTime, setRemainingTime] = useState(() => {
+    return 60 / 2;
+  });
+
+  const [isGameRunning, setIsGameRunning] = useState(false);
+
+  // useEffect(() => {
+  //   if (remainingTime <= 0) {
+  //     handleTimeout();
+  //   }
+  // }, [remainingTime]);
+
+  const handleTimeout = () => {
+    setIsGameRunning(false);
+    // handle game over logic here
+    // toast({
+    //   title: "Time's up!",
+    //   description: <LinkCountry gameState={gameState} />,
+    // });
+    resetGame();
+  };
+
+  const handleStartGame = () => {
+    setIsGameRunning(true);
+    // focus on the input.
+    if (searchRef.current) {
+      searchRef.current.focus(); // searchRef.current.blur();
+    } else {
+      toast({ title: "", description: "searchRef.current is null" });
+    }
+  };
 
   /////////////////////////////////////////////////////////////////////////////
   // REGION_START: GAME LOGIC
@@ -135,22 +173,29 @@ function FlagGuessingGame(): JSX.Element {
     const triesRemaining = gameState.triesRemaining - 1;
 
     if (guessedCountry === selectedCountry) {
-      toast({ title: "You won!" });
+      toast({
+        title: "You won!",
+
+        description: <LinkCountry gameState={gameState} />,
+      });
       setGameState(
         produce(gameState, (draft) => {
           draft.state = GameState.Won;
           draft.guessedCountries = guessedCountrySet;
         })
       );
-      const timer = 5; // 5 seconds.
+      // const timer = 5; // 5 seconds.
       toast({
         title: "You won!",
-        description: `Reseting game in ${timer} seconds.`,
-        duration: timer * 1000,
+        description: <LinkCountry gameState={gameState} />,
+        // duration: timer * 1000,
       });
       resetGame();
     } else if (triesRemaining === 0) {
-      toast({ title: "You lost!" });
+      toast({
+        title: "You lost!",
+        description: <LinkCountry gameState={gameState} />,
+      });
       setGameState(
         produce(gameState, (draft) => {
           draft.state = GameState.Lost;
@@ -179,9 +224,16 @@ function FlagGuessingGame(): JSX.Element {
   }
 
   // Reset the game.
-  function resetGame(timeout: number = 5000) {
+  function resetGame(timeout: number = 4000) {
     setTimeout(() => {
-      toast({ title: "Resetting game…", duration: 4000 });
+      // Reset the remaining time.
+      // setRemainingTime(() => { return 60 / 2; }
+      setIsGameRunning(false);
+      toast({
+        title: "Resetting Game",
+        duration: 3500,
+      });
+
       setGameState(
         produce((draft) => {
           draft.triesRemaining = MAX_TRIES;
@@ -192,7 +244,11 @@ function FlagGuessingGame(): JSX.Element {
 
       selectRandomCountry();
 
-      toast({ title: "Game reset", duration: 1000 });
+      if (startGameRef.current) {
+        startGameRef.current.focus();
+      } else {
+        toast({ title: "", description: "startGameRef.current is null" });
+      }
     }, timeout);
   }
 
@@ -259,6 +315,17 @@ function FlagGuessingGame(): JSX.Element {
   // REGION_START: GAME UI RENDERING REACT COMPONENT
   /////////////////////////////////////////////////////////////////////////////
 
+  function LinkCountry({ gameState }: { gameState: InitialGameState }) {
+    return (
+      <Link
+        href={`/countries/${gameState.selectedCountry?.alpha3Code}`}
+        className="underline flex font-bold"
+      >
+        {gameState.selectedCountry?.name}
+      </Link>
+    );
+  }
+
   const triesRemaining = gameState.triesRemaining; // Get the list of remaining tries.
   const guessedCountries = Array.from(gameState.guessedCountries); // Get the list of guessed countries.
   const randomCountry = gameState.selectedCountry;
@@ -266,30 +333,93 @@ function FlagGuessingGame(): JSX.Element {
   const imageUrl = flag || flags?.png || "/assets/placeholders/flag.jpg" || require("../public/assets/placeholders/flag.jpg"); // prettier-ignore
 
   return (
-    <section className="grid mt-6 gap-8 justify-center">
-      <Heading
-        color={"default"}
-        fontWeight={"bold"}
-        variant="h1"
-        className="uppercase text-3xl font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block"
-        // className="flex text-2xl md:text-3xl justify-center uppercase"
-      >
-        Guess the country
-      </Heading>
+    <section className="flex flex-col w-[80vw] md:w-[60vw] mx-auto mt-6 gap-8 justify-center">
+      <div className="grid">
+        {isGameRunning ? (
+          <div
+            className={`
+              scroll-m-20 mt-10 uppercase text-4xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block`}
+          >
+            <CountdownTimer
+              initialTime={remainingTime}
+              onTimeout={handleTimeout}
+            />
+          </div>
+        ) : (
+          <Heading
+            color={"default"}
+            fontWeight={"bold"}
+            variant="h1"
+            className="uppercase text-3xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block"
+          >
+            Guess the country
+          </Heading>
+        )}
+      </div>
+
       {/* Flag ratio is commonly 3/2 or 2/1 : https://en.wikipedia.org/wiki/List_of_aspect_ratios_of_national_flags  */}
-      <div className="py-2 mx-auto w-[250px]">
+      <div className="py-2 mx-auto w-[250px] grid">
         <AspectRatio ratio={3 / 2}>
           <Image // fill
             width={250}
             height={250}
             src={imageUrl}
             alt={randomCountry?.name ?? "Flag"}
-            className={`rounded-md shadow w-[250px] aspect-video object-cover`}
+            className={`${
+              isGameRunning ? "blur-0" : "blur-xl dark:blur-2xl"
+            } rounded-md shadow w-[250px] aspect-video object-cover`}
           />
+          <div className="w-full mt-3 grid place-content-center">
+            {isGameRunning && (
+              <div
+                className={`${
+                  isGameRunning ? "opacity-100" : "opacity-0"
+                } md:hidden block font-bold text-lg`}
+              >
+                <CountdownTimer
+                  initialTime={remainingTime}
+                  onTimeout={handleTimeout}
+                />
+              </div>
+            )}
+            <div className="absolute place-self-center h-full">
+              <Button
+                ref={startGameRef}
+                onClick={handleStartGame}
+                className={`${
+                  isGameRunning ? "opacity-0" : "opacity-100"
+                } relative `}
+                variant={"subtle"}
+              >
+                {!isGameRunning && guessedCountries.length === 0 ? (
+                  <div className="absolute -top-2.5 opacity-90 right-3">
+                    <Indicator />
+                  </div>
+                ) : null}
+                Start Game
+              </Button>
+            </div>
+          </div>
+          {/* <CountdownTimer
+            initialTime={10}
+            onTimeout={(): void => {
+              toast({ title: "Time's up!" });
+            }}
+          /> */}
         </AspectRatio>
       </div>
 
-      <div className="grid gap-y-2 relative rounded-lg! min-w-[300px] outline! outline-slate-200! dark:outline-slate-700! overflow-clip!">
+      <div
+        onClick={(e) => {
+          if (!isGameRunning && startGameRef.current) {
+            startGameRef.current.focus();
+            toast({
+              title: "You must start the game first!",
+            });
+          }
+        }}
+        className="grid gap-y-2 relative rounded-lg! min-w-[300px] outline! outline-slate-200! dark:outline-slate-700! overflow-clip!"
+      >
         {/*
           A CommandCombobox component that allows the user to search and select a country.
           @remarks
@@ -299,14 +429,20 @@ function FlagGuessingGame(): JSX.Element {
           @returns The CommandCombobox component.
         */}
         <Popover open={openSearch} onOpenChange={setOpenSearch}>
-          <PopoverTrigger asChild>
+          <PopoverTrigger
+            // className="disabled:outline disabled:outline-1 disabled-outline-slate-200 disabled:dark:outline-slate-700"
+            disabled={!isGameRunning}
+            asChild
+          >
             <Button
+              id="search-country"
+              ref={searchRef}
               variant="outline"
               role="combobox"
               aria-expanded={openSearch}
               className="min-w-[200px] relative justify-between"
             >
-              {guessedCountries.length === 0 ? (
+              {isGameRunning && guessedCountries.length === 0 ? (
                 <div className="absolute -top-2.5 opacity-90 right-3">
                   <Indicator />
                 </div>
@@ -469,10 +605,8 @@ export function Directions({ gameState, guessed }: DirectionsProps) {
   const targetCoords = selectedCountry?.latlng ?? [0, 0];
 
   const distance = haversine(
-    guessedCoords[0],
-    guessedCoords[1],
-    targetCoords[0],
-    targetCoords[1]
+    [guessedCoords[0], guessedCoords[1]],
+    [targetCoords[0], targetCoords[1]]
   ).toFixed(0);
 
   let direction = "";
@@ -499,3 +633,103 @@ export function Directions({ gameState, guessed }: DirectionsProps) {
     </div>
   );
 }
+
+type CountdownTimerProps = {
+  initialTime: number;
+  onTimeout: () => void;
+};
+
+function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
+  const [time, setTime] = useState(initialTime);
+  const [mounted, setMounted] = useState(true);
+
+  useEffect(() => {
+    if (mounted) {
+      const timer = setInterval(() => {
+        setTime((prevTime: number) => prevTime - 1);
+      }, 1000);
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [mounted]);
+
+  useEffect(() => {
+    if (time <= 0 && mounted) {
+      setMounted(false);
+      onTimeout();
+    }
+  }, [time]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${
+      remainingSeconds < 10 ? "0" : ""
+    }${remainingSeconds}`;
+  };
+
+  const getTimeAwareColor = (remainingTime: number) => {
+    if (remainingTime <= 5) {
+      return cn("text-red-500 animate-pulse dark:text-red-400");
+    } else if (remainingTime > 5 && remainingTime <= 10) {
+      return cn("text-red-500 dark:text-red-400");
+    } else if (remainingTime <= 20) {
+      return cn("text-orange-500 dark:text-orange-400");
+    } else {
+      return cn("");
+    }
+  };
+
+  return (
+    <span className={`${getTimeAwareColor(time)}`}>{formatTime(time)}</span>
+  );
+}
+
+// {/* <div // className="timer bg-red-300" style={{ background: `hsl(${progress * 60}, 100, 50)` }} */}
+// {/* > */}
+// {/*   <style jsx global> */}
+// {/*     {` */}
+// {/*      .progress-bar { */}
+// {/*         background-color: hsl(${progress * Math.PI + 60}, 75%, 50%) !important; */}
+// {/*         height: 4px; */}
+// {/*         margin-block-start: 4px; */}
+// {/*       } */}
+// {/*       .progress-bar > * { */}
+// {/*         background-color: hsl(${progressLaps + 33}, 100%, 50%) !important; */}
+// {/*       } */}
+// {/*     `} */}
+// {/*   </style> */}
+// {/*   {/* <Loader2 className="animate-spin" /> */} */}
+// {/*   <Progress */}
+// {/*     value={progress} */}
+// {/*     // Does w-[60%] mean 60 seconds? or just aesthetic? */}
+// {/*     // className={`w-[60%] [&>*]:bg-[hsl(${progressLaps * 5 + 100},100,50)]`} */}
+// {/*     className={`w-[100%] progress-bar`} */}
+// {/*       /> */}
+// {/*       <span className="text-xs flex justify-center"> */}
+// {/*       {progress.toFixed(2)} / {progressLaps} */}
+// {/**/}
+// {/*       </span> */}
+// {/* </div> */}
+
+// const [progress, setProgress] = useState(0);
+// const [progressLaps, setProgressLaps] = useState(0);
+// useEffect(() => {
+//   const updateCounter = () => {
+//     if (progress >= 100) {
+//       setProgressLaps(progressLaps + 1);
+//     }
+//     if (progress >= 100) {
+//       return 0;
+//     }
+//     return progress + 0.05;
+//   };
+//   const timer = setTimeout(() => {
+//     setProgress(updateCounter());
+//   }, 0.001); // 50ms frame rate.
+//   return () => {
+//     clearTimeout(timer);
+//     // if (progress >= 100) { setProgressLaps((prev) => prev++); setProgress(0); }
+//   };
+// }, [progress]);

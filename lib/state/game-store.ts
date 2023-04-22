@@ -1,82 +1,168 @@
 import { atom, useAtom } from "jotai";
+import { LocalStorageKey } from "../enums";
+import * as z from "zod";
 import produce from "immer";
-import { ICountry } from "../types/types-country";
 
-// toGuess: null,
-// guesses: [],
-// toGuess: string | null;
-// guesses: string[];
+// const gameStateSchema = z.object({ currentRound: z.number(), remainingGuesses: z.number(), currentWord: z.string(), startTime: z.number(), elapsedTime: z.number(), });
 
-type GameAPIStore = {
-  answer: null | ICountry;
-  guesses: ICountry[];
-};
+const gameStateSchema = z.object({
+  currentRound: z.number().min(1),
+  remainingGuesses: z.number().min(0),
+  currentWord: z.string(),
+  startTime: z.number().min(0),
+  elapsedTime: z.number().min(0),
+});
 
-type GameStore = {
-  /**
-   * Round would be the round no. at which the game is currently at.
-   * HACK: is this neccessary? Are we mutating this initialState, or just using it as a reference?
-   */
-  currentRound: number;
-  /**
-   * Score or tries would be the round no. at which the correct guess was made.
-   * NOTE: less rating is better. winning at 0 is earlier and better.
-   */
-  tries: number;
-  /**
-   * Game mode is the state of the game.
-   */
-  gameMode: GameMode;
+const gameConfigSchema = z.object({
+  maxRounds: z.number(),
+  maxGuessesPerRound: z.number(),
+  bonusPointsPerSecond: z.number(),
+});
 
-  /**
-   *  Game result is the result of the game.
-   */
-  gameResult: GameResult;
-  /**
-   * Total rounds would be the total number of rounds in the game.
-   */
-  readonly totalRounds: number; // NOTE: should this be readonly?
-};
+type GameState = z.infer<typeof gameStateSchema>;
+type GameConfig = z.infer<typeof gameConfigSchema>;
 
-enum GameMode {
-  Stopped,
-  Playing,
-  Paused,
+const initialConfig: GameConfig = gameConfigSchema.parse({
+  maxRounds: 3,
+  maxGuessesPerRound: 6,
+  bonusPointsPerSecond: 10,
+});
+
+const configAtom = atom<GameConfig>(initialConfig);
+
+const gameStateAtom = atom<GameState>(
+  (() => {
+    const gameState = localStorage.getItem(LocalStorageKey.GameState);
+    if (gameState) {
+      const parsedGameState = gameStateSchema.parse(JSON.parse(gameState));
+      return parsedGameState;
+    } else {
+      const updatedState: GameState = {
+        currentRound: 1,
+        remainingGuesses: initialConfig.maxGuessesPerRound,
+        currentWord: "", // TODO: Replace with randomCountry word generation logic.
+        startTime: 0,
+        elapsedTime: 0,
+      };
+      // return gameStateSchema.parse(updatedState);
+      return gameStateSchema.parse(updatedState);
+    }
+  })()
+);
+
+const lastRoundTimestampAtom = atom<number | null>(
+  (() => {
+    const timestamp = localStorage.getItem(LocalStorageKey.LastRoundTimestamp);
+    return timestamp ? parseInt(timestamp) : null;
+  })()
+);
+
+function saveGameState(state: GameState): void {
+  localStorage.setItem(LocalStorageKey.GameState, JSON.stringify(state));
 }
-enum GameResult {
-  None,
-  Draw,
-  Loss,
-  Won,
+
+function saveLastRoundTimestamp(timestamp: number): void {
+  localStorage.setItem(
+    LocalStorageKey.LastRoundTimestamp,
+    timestamp.toString()
+  );
 }
 
-///////////////////////////////////////////////////////////////////////////////
+function useGameStateStore() {
+  const [gameState, setGameState] = useAtom(gameStateAtom);
+  const [lastRoundTimestamp, setLastRoundTimestamp] = useAtom(
+    lastRoundTimestampAtom
+  );
+  const [config, setConfig] = useAtom(configAtom);
 
-const initialGameState: GameStore = {
-  currentRound: 0,
-  gameMode: GameMode.Stopped,
-  gameResult: GameResult.None,
-  tries: 0,
-  totalRounds: 5,
-} as const; // makes it readonly.
-
-const initialGameAPIState: GameAPIStore = {
-  answer: null,
-  guesses: [],
-};
-
-///////////////////////////////////////////////////////////////////////////////
-
-const gameGuessStateAtom = atom<GameAPIStore>(initialGameAPIState);
-const gameStateAtom = atom<GameStore>(initialGameState);
-
-export {
-  gameGuessStateAtom,
-  GameMode,
-  GameResult,
-  gameStateAtom,
-  initialGameAPIState,
-  initialGameState,
-};
-
-export type { GameStore, GameAPIStore };
+  // TODO: Pass in arguments to be used from the above atom getter setters to each functions.
+  //
+  // function startRound(): void {
+  //   setGameState(
+  //     produce((draftState: GameState) => {
+  //       draftState.startTime = Date.now();
+  //       draftState.elapsedTime = 0;
+  //     })
+  //   );
+  //   saveGameState(gameState);
+  // }
+  //
+  // function endRound(): void {
+  //   let currentRound = gameState.currentRound;
+  //   const elapsedSeconds = Math.round(gameState.elapsedTime / 1000);
+  //   const bonusPoints = elapsedSeconds * config.bonusPointsPerSecond;
+  //
+  //   if (currentRound < config.maxRounds) {
+  //     currentRound++;
+  //     nextRound(currentRound);
+  //   } else {
+  //     setGameState(
+  //       produce((draft: GameState) => {
+  //         draft.currentRound = 1;
+  //         draft.remainingGuesses = initialConfig.maxGuessesPerRound;
+  //         (draft.currentWord = ""), // reset current word.
+  //           (draft.startTime = 0);
+  //         draft.elapsedTime = 0;
+  //       })
+  //     );
+  //
+  //     setLastRoundTimestamp(Date.now());
+  //     saveGameState(gameState);
+  //     if (lastRoundTimestamp) saveLastRoundTimestamp(lastRoundTimestamp);
+  //   }
+  // }
+  //
+  // function nextRound(currentRound: number): void {
+  //   setGameState(
+  //     produce((draftState: GameState) => {
+  //       draftState.currentRound =
+  //         draftState.currentRound === currentRound
+  //           ? currentRound
+  //           : currentRound + 1;
+  //       draftState.remainingGuesses = initialConfig.maxGuessesPerRound;
+  //       (draftState.currentWord = ""), // reset current word.
+  //         (draftState.startTime = 0);
+  //       draftState.elapsedTime = 0;
+  //     })
+  //   );
+  //   saveGameState(gameState);
+  // }
+  //
+  // function playGame(): void {
+  //   // Use the gameStateAtom and configAtom from the Jotai store
+  //   const [gameState, setGameState] = useAtom(gameStateAtom);
+  //   const [config, setConfig] = useAtom(configAtom);
+  //
+  //   // Call the startRound() function to initialize the state
+  //   startRound();
+  //
+  //   // Listen for user input and update the state accordingly
+  //   // ...
+  //
+  //   if (gameState.currentRound < config.maxRounds) {
+  //     // If there are more rounds to play, call nextRound()
+  //     nextRound(gameState.currentRound + 1);
+  //   } else {
+  //     // If all rounds have been played, log a message and reset the game state
+  //     console.log("Game Over - You have reached the maximum number of rounds.");
+  //     setGameState({
+  //       currentRound: 1,
+  //       remainingGuesses: config.maxGuessesPerRound,
+  //       currentWord: "", // TODO: Replace with randomCountry word generation logic.
+  //       startTime: 0,
+  //       elapsedTime: 0,
+  //     });
+  //     saveGameState(gameState);
+  //     setLastRoundTimestamp(Date.now());
+  //     if (lastRoundTimestamp) saveLastRoundTimestamp(lastRoundTimestamp);
+  //   }
+  // }
+  // return {
+  //   // gameState,
+  //   // setGameState,
+  //   startRound,
+  //   endRound,
+  //   nextRound,
+  //   playGame,
+  // };
+}
