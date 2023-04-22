@@ -75,92 +75,94 @@ function useGameStateStore() {
   );
   const [config, setConfig] = useAtom(configAtom);
 
-  function startRound(): void {
-    setGameState(
-      produce((draftState: GameState) => {
-        draftState.startTime = Date.now();
-        draftState.elapsedTime = 0;
-      })
-    );
-    saveGameState(gameState);
-  }
-
-  function endRound(): void {
-    let currentRound = gameState.currentRound;
-    const elapsedSeconds = Math.round(gameState.elapsedTime / 1000);
-    const bonusPoints = elapsedSeconds * config.bonusPointsPerSecond;
-
-    if (currentRound < config.maxRounds) {
-      currentRound++;
-      nextRound(currentRound);
-    } else {
-      setGameState(
-        produce((draft: GameState) => {
-          draft.currentRound = 1;
-          draft.remainingGuesses = initialConfig.maxGuessesPerRound;
-          (draft.currentWord = ""), // reset current word.
-            (draft.startTime = 0);
-          draft.elapsedTime = 0;
-        })
-      );
-
-      setLastRoundTimestamp(Date.now());
-      saveGameState(gameState);
-      if (lastRoundTimestamp) saveLastRoundTimestamp(lastRoundTimestamp);
-    }
-  }
-
-  function nextRound(currentRound: number): void {
-    setGameState(
-      produce((draftState: GameState) => {
-        draftState.currentRound =
-          draftState.currentRound === currentRound
-            ? currentRound
-            : currentRound + 1;
-        draftState.remainingGuesses = initialConfig.maxGuessesPerRound;
-        (draftState.currentWord = ""), // reset current word.
-          (draftState.startTime = 0);
-        draftState.elapsedTime = 0;
-      })
-    );
-    saveGameState(gameState);
-  }
-
-  function playGame(): void {
-    // Use the gameStateAtom and configAtom from the Jotai store
-    const [gameState, setGameState] = useAtom(gameStateAtom);
-    const [config, setConfig] = useAtom(configAtom);
-
-    // Call the startRound() function to initialize the state
-    startRound();
-
-    // Listen for user input and update the state accordingly
-    // ...
-
-    if (gameState.currentRound < config.maxRounds) {
-      // If there are more rounds to play, call nextRound()
-      nextRound(gameState.currentRound + 1);
-    } else {
-      // If all rounds have been played, log a message and reset the game state
-      console.log("Game Over - You have reached the maximum number of rounds.");
-      setGameState({
-        currentRound: 1,
-        remainingGuesses: config.maxGuessesPerRound,
-        currentWord: "", // TODO: Replace with randomCountry word generation logic.
-        startTime: 0,
-        elapsedTime: 0,
-      });
-      saveGameState(gameState);
-      setLastRoundTimestamp(Date.now());
-      if (lastRoundTimestamp) saveLastRoundTimestamp(lastRoundTimestamp);
-    }
-  }
-  return {
-    // gameState,
-    // setGameState,
-    startRound,
-    endRound,
-    nextRound,
-    playGame,
-  };
+  // TODO: Pass in arguments to be used from the above atom getter setters to each functions.
+  //
+  // function startRound(): void {
+  //   setGameState(
+  //     produce((draftState: GameState) => {
+  //       draftState.startTime = Date.now();
+  //       draftState.elapsedTime = 0;
+  //     })
+  //   );
+  //   saveGameState(gameState);
+  // }
+  //
+  // function endRound(): void {
+  //   let currentRound = gameState.currentRound;
+  //   const elapsedSeconds = Math.round(gameState.elapsedTime / 1000);
+  //   const bonusPoints = elapsedSeconds * config.bonusPointsPerSecond;
+  //
+  //   if (currentRound < config.maxRounds) {
+  //     currentRound++;
+  //     nextRound(currentRound);
+  //   } else {
+  //     setGameState(
+  //       produce((draft: GameState) => {
+  //         draft.currentRound = 1;
+  //         draft.remainingGuesses = initialConfig.maxGuessesPerRound;
+  //         (draft.currentWord = ""), // reset current word.
+  //           (draft.startTime = 0);
+  //         draft.elapsedTime = 0;
+  //       })
+  //     );
+  //
+  //     setLastRoundTimestamp(Date.now());
+  //     saveGameState(gameState);
+  //     if (lastRoundTimestamp) saveLastRoundTimestamp(lastRoundTimestamp);
+  //   }
+  // }
+  //
+  // function nextRound(currentRound: number): void {
+  //   setGameState(
+  //     produce((draftState: GameState) => {
+  //       draftState.currentRound =
+  //         draftState.currentRound === currentRound
+  //           ? currentRound
+  //           : currentRound + 1;
+  //       draftState.remainingGuesses = initialConfig.maxGuessesPerRound;
+  //       (draftState.currentWord = ""), // reset current word.
+  //         (draftState.startTime = 0);
+  //       draftState.elapsedTime = 0;
+  //     })
+  //   );
+  //   saveGameState(gameState);
+  // }
+  //
+  // function playGame(): void {
+  //   // Use the gameStateAtom and configAtom from the Jotai store
+  //   const [gameState, setGameState] = useAtom(gameStateAtom);
+  //   const [config, setConfig] = useAtom(configAtom);
+  //
+  //   // Call the startRound() function to initialize the state
+  //   startRound();
+  //
+  //   // Listen for user input and update the state accordingly
+  //   // ...
+  //
+  //   if (gameState.currentRound < config.maxRounds) {
+  //     // If there are more rounds to play, call nextRound()
+  //     nextRound(gameState.currentRound + 1);
+  //   } else {
+  //     // If all rounds have been played, log a message and reset the game state
+  //     console.log("Game Over - You have reached the maximum number of rounds.");
+  //     setGameState({
+  //       currentRound: 1,
+  //       remainingGuesses: config.maxGuessesPerRound,
+  //       currentWord: "", // TODO: Replace with randomCountry word generation logic.
+  //       startTime: 0,
+  //       elapsedTime: 0,
+  //     });
+  //     saveGameState(gameState);
+  //     setLastRoundTimestamp(Date.now());
+  //     if (lastRoundTimestamp) saveLastRoundTimestamp(lastRoundTimestamp);
+  //   }
+  // }
+  // return {
+  //   // gameState,
+  //   // setGameState,
+  //   startRound,
+  //   endRound,
+  //   nextRound,
+  //   playGame,
+  // };
 }

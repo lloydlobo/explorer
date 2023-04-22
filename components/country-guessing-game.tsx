@@ -6,11 +6,13 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
+import { Indicator } from "@/components/ui/indicator";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
@@ -22,11 +24,10 @@ import { cn } from "@/lib/utils";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import produce from "immer";
 import { atom, useAtom } from "jotai";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { z } from "zod";
-import { Indicator } from "./ui/indicator";
 
 const MAX_TRIES = 6;
 
@@ -92,6 +93,28 @@ function FlagGuessingGame(): JSX.Element {
   const [valueSearch, setValueSearch] = useState("");
 
   /* REGION_END: ComboBox Search... */
+
+  const [remainingTime, setRemainingTime] = useState(() => {
+    return 60 / 2;
+  });
+
+  const [isGameRunning, setIsGameRunning] = useState(false);
+  // useEffect(() => {
+  //   if (remainingTime <= 0) {
+  //     handleTimeout();
+  //   }
+  // }, [remainingTime]);
+
+  const handleTimeout = () => {
+    setIsGameRunning(false);
+    // handle game over logic here
+    toast({ title: "Time's up!" });
+    resetGame();
+  };
+
+  const handleStartGame = () => {
+    setIsGameRunning(true);
+  };
 
   /////////////////////////////////////////////////////////////////////////////
   // REGION_START: GAME LOGIC
@@ -190,6 +213,7 @@ function FlagGuessingGame(): JSX.Element {
         })
       );
 
+      setIsGameRunning(false);
       selectRandomCountry();
 
       toast({ title: "Game reset", duration: 1000 });
@@ -284,8 +308,33 @@ function FlagGuessingGame(): JSX.Element {
             height={250}
             src={imageUrl}
             alt={randomCountry?.name ?? "Flag"}
-            className={`rounded-md shadow w-[250px] aspect-video object-cover`}
+            className={`${
+              isGameRunning ? "blur-0" : "blur-2xl"
+            } rounded-md shadow w-[250px] aspect-video object-cover`}
           />
+          <div className="w-full mt-3 grid place-content-center">
+            {isGameRunning ? (
+              <CountdownTimer
+                initialTime={remainingTime}
+                onTimeout={handleTimeout}
+              />
+            ) : (
+              <Button onClick={handleStartGame} className="relative">
+                {!isGameRunning && guessedCountries.length === 0 ? (
+                  <div className="absolute -top-2.5 opacity-90 right-3">
+                    <Indicator />
+                  </div>
+                ) : null}
+                Start Game
+              </Button>
+            )}
+          </div>
+          {/* <CountdownTimer
+            initialTime={10}
+            onTimeout={(): void => {
+              toast({ title: "Time's up!" });
+            }}
+          /> */}
         </AspectRatio>
       </div>
 
@@ -299,14 +348,14 @@ function FlagGuessingGame(): JSX.Element {
           @returns The CommandCombobox component.
         */}
         <Popover open={openSearch} onOpenChange={setOpenSearch}>
-          <PopoverTrigger asChild>
+          <PopoverTrigger disabled={!isGameRunning} asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={openSearch}
               className="min-w-[200px] relative justify-between"
             >
-              {guessedCountries.length === 0 ? (
+              {isGameRunning && guessedCountries.length === 0 ? (
                 <div className="absolute -top-2.5 opacity-90 right-3">
                   <Indicator />
                 </div>
@@ -497,3 +546,89 @@ export function Directions({ gameState, guessed }: DirectionsProps) {
     </div>
   );
 }
+
+type CountdownTimerProps = {
+  initialTime: number;
+  onTimeout: () => void;
+};
+
+function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
+  const [time, setTime] = useState(initialTime);
+  const [mounted, setMounted] = useState(true);
+
+  useEffect(() => {
+    if (mounted) {
+      const timer = setInterval(() => {
+        setTime((prevTime: number) => prevTime - 1);
+      }, 1000);
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [mounted]);
+
+  useEffect(() => {
+    if (time <= 0 && mounted) {
+      setMounted(false);
+      onTimeout();
+    }
+  }, [time]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${
+      remainingSeconds < 10 ? "0" : ""
+    }${remainingSeconds}`;
+  };
+
+  return <>{formatTime(time)}</>;
+}
+
+// {/* <div // className="timer bg-red-300" style={{ background: `hsl(${progress * 60}, 100, 50)` }} */}
+// {/* > */}
+// {/*   <style jsx global> */}
+// {/*     {` */}
+// {/*      .progress-bar { */}
+// {/*         background-color: hsl(${progress * Math.PI + 60}, 75%, 50%) !important; */}
+// {/*         height: 4px; */}
+// {/*         margin-block-start: 4px; */}
+// {/*       } */}
+// {/*       .progress-bar > * { */}
+// {/*         background-color: hsl(${progressLaps + 33}, 100%, 50%) !important; */}
+// {/*       } */}
+// {/*     `} */}
+// {/*   </style> */}
+// {/*   {/* <Loader2 className="animate-spin" /> */} */}
+// {/*   <Progress */}
+// {/*     value={progress} */}
+// {/*     // Does w-[60%] mean 60 seconds? or just aesthetic? */}
+// {/*     // className={`w-[60%] [&>*]:bg-[hsl(${progressLaps * 5 + 100},100,50)]`} */}
+// {/*     className={`w-[100%] progress-bar`} */}
+// {/*       /> */}
+// {/*       <span className="text-xs flex justify-center"> */}
+// {/*       {progress.toFixed(2)} / {progressLaps} */}
+// {/**/}
+// {/*       </span> */}
+// {/* </div> */}
+
+// const [progress, setProgress] = useState(0);
+// const [progressLaps, setProgressLaps] = useState(0);
+// useEffect(() => {
+//   const updateCounter = () => {
+//     if (progress >= 100) {
+//       setProgressLaps(progressLaps + 1);
+//     }
+//     if (progress >= 100) {
+//       return 0;
+//     }
+//     return progress + 0.05;
+//   };
+//   const timer = setTimeout(() => {
+//     setProgress(updateCounter());
+//   }, 0.001); // 50ms frame rate.
+//   return () => {
+//     clearTimeout(timer);
+//     // if (progress >= 100) { setProgressLaps((prev) => prev++); setProgress(0); }
+//   };
+// }, [progress]);
