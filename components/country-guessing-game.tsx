@@ -12,22 +12,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
 import dataJSON from "@/lib/data.json";
 import { LocalStorageKey } from "@/lib/enums";
 import { haversine } from "@/lib/haversine-distance";
-import { toast as toaster, useToast } from "@/lib/hooks/ui/use-toast";
+import { useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import produce from "immer";
 import { atom, useAtom } from "jotai";
-import { ViewIcon } from "lucide-react";
-import { ExternalLinkIcon } from "lucide-react";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import {
+  Check,
+  ChevronsUpDown,
+  ExternalLinkIcon,
+  Loader2,
+  ViewIcon,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
@@ -111,7 +114,9 @@ function FlagGuessingGame(): JSX.Element {
   };
 
   /* REGION_START: Contdown timer.. */
-  const [gameTimeStamps, setGameTimeStamps] = useState<GameTimeStamps>({});
+  const [gameTimeStamps, setGameTimeStamps] = useState<GameTimeStamps>(
+    {} as GameTimeStamps
+  );
   const [remainingTime, setRemainingTime] = useState(() => {
     return TIME_LIMIT;
   });
@@ -503,12 +508,6 @@ function FlagGuessingGame(): JSX.Element {
               </Button>
             </div>
           </div>
-          {/* <CountdownTimer
-            initialTime={10}
-            onTimeout={(): void => {
-              toast({ title: "Time's up!" });
-            }}
-          /> */}
         </AspectRatio>
       </div>
 
@@ -788,3 +787,34 @@ function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
     <span className={`${getTimeAwareColor(time)}`}>{formatTime(time)}</span>
   );
 }
+
+// NOTE: REFACTOR (Optional)
+// Use useEffect to check the user's membership status, instead of useState. This will allow you to update the membership status automatically when the component mounts or when the user's membership status changes.
+//
+// Instead of using separate states for the search button and input box, combine them into one state using an object with openSearch, selectedOptionSearch, and valueSearch properties.
+//
+// Combine the GameTimeStamps state and the remainingTime state into one state called gameState that has all of the game state information.
+//
+// Use a separate useEffect hook to update the remaining time and check if the time has run out.
+//
+// Combine the isGamePaused and isGameRunning states into a single gameState state.
+//
+// Use useMemo to memoize the gameDataArray and selectedCountry values.
+//
+// Use useCallback to memoize the selectRandomCountry and checkGuessCountry functions.
+//
+// Extract the toast notifications into separate components or functions to reduce the complexity of the handleStartGame and checkGuessCountry functions.
+//
+// Rename the setGameState function to updateGameState to be more descriptive.
+//
+// Remove any commented-out code that is not being used or needed.
+//
+// Move the user membership check to a separate function or hook that can be called once the user logs in or the component mounts.
+//
+// Consolidate the state related to the search box into a single object using useState.
+//
+// Move the countdown timer related state and functions to a separate file or hook, especially if they are reused elsewhere.
+//
+// Use the useRef hook to create a ref for the input element instead of relying on a button ref to focus the input.
+//
+// Use useCallback to memoize the handleStartGame, selectRandomCountry, and checkGuessCountry functions so they are not recreated on each render.
