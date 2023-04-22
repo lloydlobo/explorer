@@ -34,6 +34,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 
 const MAX_TRIES = 6;
+const TIME_LIMIT = 30; // seconds
 
 /** `GameState` enum defines the possible states of the game.
  *
@@ -90,6 +91,10 @@ function FlagGuessingGame(): JSX.Element {
 
   const [gameState, setGameState] = useAtom(gameStateAtom);
 
+  /* REGION_START: User membership... */
+  const [isUserPro, setIsUserPro] = useState(false); // TODO: use useEffect of api route to check membership status, or use sign in data or protected routes to set this.
+  /* REGION_END: User membership... */
+
   /* REGION_START: ComboBox Search... */
 
   const searchRef = useRef<HTMLButtonElement | null>(null);
@@ -104,43 +109,76 @@ function FlagGuessingGame(): JSX.Element {
     gameStartedAt: Date;
     gameResetAt: Date;
   };
+
+  /* REGION_START: Contdown timer.. */
   const [gameTimeStamps, setGameTimeStamps] = useState<GameTimeStamps>({});
   const [remainingTime, setRemainingTime] = useState(() => {
-    return 60 / 2;
+    return TIME_LIMIT;
   });
-
+  const [isGamePaused, setIsGamePaused] = useState(false);
   const [isGameRunning, setIsGameRunning] = useState(false);
 
   // useEffect(() => {
-  //   if (remainingTime <= 0) {
-  //     handleTimeout();
-  //   }
+  //   if (remainingTime <= 0) { handleTimeout(); }
   // }, [remainingTime]);
 
   const handleTimeout = () => {
-    setIsGameRunning(false);
     setGameTimeStamps(
       produce((draft) => {
         draft.gameResetAt = new Date();
       })
     );
-    // handle game over logic here
-    // toast({
-    //   title: "Time's up!",
-    //   description: <LinkCountry gameState={gameState} />,
-    // });
+    toast({
+      title: "Time is up!",
+      description: <LinkCountry gameState={gameState} />,
+    });
     resetGame();
   };
 
+  /* REGION_END: Contdown timer.. */
+
   const handleStartGame = () => {
     const gameDataArray = getGameDataArray();
-    if (gameDataArray.length > 0) {
+    if (gameDataArray.length > 0 && !isUserPro) {
       toast({
-        title: `You have already played todat. Please come back tomorrow.`,
+        title: `You have already played today.`,
         description: (
-          <Link className="underline font-bold" href="/pro">
-            Get Pro to remove limits.
-          </Link>
+          <div className="grid">
+            Please come back tomorrow.{" "}
+            <Link className="underline font-bold" href="/pro">
+              Get Pro to remove limits.
+            </Link>
+          </div>
+        ),
+        action: (
+          <Button
+            onClick={() => {
+              toast({
+                title: "Are you sure?",
+                description: "You will lose all your progress",
+                action: (
+                  <Button
+                    className=""
+                    size={"sm"}
+                    onClick={() => {
+                      localStorage.clear();
+                      // dismiss();
+                      toast({
+                        title: "Local saved data cleared",
+                        description: "You can play the game again.",
+                      });
+                    }}
+                  >
+                    Delete
+                  </Button>
+                ),
+              });
+            }}
+            className="w-fit px-4"
+            size={"sm"}
+          >
+            Clear data
+          </Button>
         ),
       });
       return;
@@ -153,6 +191,7 @@ function FlagGuessingGame(): JSX.Element {
     );
 
     setIsGameRunning(true);
+
     // focus on the input.
     if (searchRef.current) {
       searchRef.current.focus(); // searchRef.current.blur();
@@ -255,23 +294,22 @@ function FlagGuessingGame(): JSX.Element {
 
   // Reset the game.
   function resetGame(timeout: number = 4000) {
+    setIsGamePaused(true);
     const gameDataArray = getGameDataArray();
     setTimeout(() => {
-      // Reset the remaining time.
-      // setRemainingTime(() => { return 60 / 2; }
-      setIsGameRunning(false);
-      toast({
-        title: "Resetting Game",
-        duration: 3500,
-      });
-
+      setIsGameRunning(false); // FIXME: Use this later, to avoid sudden shifts of heading and timer.
       setGameState(
         produce((draft) => {
           draft.triesRemaining = MAX_TRIES;
           draft.guessedCountries = new Set<string>();
-          draft.state = GameState.Running;
+          draft.state = GameState.Canceled; // HACK: IT works when this is `Playing`.
         })
       );
+      setIsGamePaused(false);
+      toast({
+        title: "Resetting Game",
+        duration: 3500,
+      });
 
       const gameData = {
         countries: gameState.countries,
@@ -290,6 +328,7 @@ function FlagGuessingGame(): JSX.Element {
         JSON.stringify(gameDataArray)
       );
 
+      setRemainingTime(TIME_LIMIT);
       selectRandomCountry();
 
       if (startGameRef.current) {
@@ -401,7 +440,7 @@ function FlagGuessingGame(): JSX.Element {
       <div className="grid">
         {isGameRunning ? (
           <div
-            className={`
+            className={`${isGamePaused ? "blur-2xl" : "blur-0"}
               scroll-m-20 mt-10 uppercase text-4xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block`}
           >
             <CountdownTimer
@@ -436,9 +475,9 @@ function FlagGuessingGame(): JSX.Element {
           <div className="w-full mt-3 grid place-content-center">
             {isGameRunning && (
               <div
-                className={`${
-                  isGameRunning ? "opacity-100" : "opacity-0"
-                } md:hidden block font-bold text-lg`}
+                className={`${isGameRunning ? "opacity-100" : "opacity-0"}
+                ${isGamePaused ? "blur-2xl" : "blur-0"}
+                 md:hidden block font-bold text-lg`}
               >
                 <CountdownTimer
                   initialTime={remainingTime}
@@ -749,51 +788,3 @@ function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
     <span className={`${getTimeAwareColor(time)}`}>{formatTime(time)}</span>
   );
 }
-
-// {/* <div // className="timer bg-red-300" style={{ background: `hsl(${progress * 60}, 100, 50)` }} */}
-// {/* > */}
-// {/*   <style jsx global> */}
-// {/*     {` */}
-// {/*      .progress-bar { */}
-// {/*         background-color: hsl(${progress * Math.PI + 60}, 75%, 50%) !important; */}
-// {/*         height: 4px; */}
-// {/*         margin-block-start: 4px; */}
-// {/*       } */}
-// {/*       .progress-bar > * { */}
-// {/*         background-color: hsl(${progressLaps + 33}, 100%, 50%) !important; */}
-// {/*       } */}
-// {/*     `} */}
-// {/*   </style> */}
-// {/*   {/* <Loader2 className="animate-spin" /> */} */}
-// {/*   <Progress */}
-// {/*     value={progress} */}
-// {/*     // Does w-[60%] mean 60 seconds? or just aesthetic? */}
-// {/*     // className={`w-[60%] [&>*]:bg-[hsl(${progressLaps * 5 + 100},100,50)]`} */}
-// {/*     className={`w-[100%] progress-bar`} */}
-// {/*       /> */}
-// {/*       <span className="text-xs flex justify-center"> */}
-// {/*       {progress.toFixed(2)} / {progressLaps} */}
-// {/**/}
-// {/*       </span> */}
-// {/* </div> */}
-
-// const [progress, setProgress] = useState(0);
-// const [progressLaps, setProgressLaps] = useState(0);
-// useEffect(() => {
-//   const updateCounter = () => {
-//     if (progress >= 100) {
-//       setProgressLaps(progressLaps + 1);
-//     }
-//     if (progress >= 100) {
-//       return 0;
-//     }
-//     return progress + 0.05;
-//   };
-//   const timer = setTimeout(() => {
-//     setProgress(updateCounter());
-//   }, 0.001); // 50ms frame rate.
-//   return () => {
-//     clearTimeout(timer);
-//     // if (progress >= 100) { setProgressLaps((prev) => prev++); setProgress(0); }
-//   };
-// }, [progress]);

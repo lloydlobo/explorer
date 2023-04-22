@@ -1,31 +1,37 @@
 import { Button } from "@/components/ui/button";
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command";
+import { Indicator } from "@/components/ui/indicator";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Heading } from "@/components/ui/typography";
-import { useToast } from "@/lib/hooks/ui/use-toast";
+import dataJSON from "@/lib/data.json";
+import { LocalStorageKey } from "@/lib/enums";
+import { haversine } from "@/lib/haversine-distance";
+import { toast as toaster, useToast } from "@/lib/hooks/ui/use-toast";
 import { ICountry } from "@/lib/types/types-country";
 import { cn } from "@/lib/utils";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import produce from "immer";
 import { atom, useAtom } from "jotai";
-import { Check, ChevronsUpDown, SearchIcon } from "lucide-react";
+import { ViewIcon } from "lucide-react";
+import { ExternalLinkIcon } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import React, { useEffect, useRef, useState } from "react";
+import { z } from "zod";
 
 const MAX_TRIES = 6;
 
@@ -39,39 +45,187 @@ enum GameState {
   Canceled,
 }
 
-/** `gameStateAtom` is the global state of the game. */
-// PrimitiveAtom  is a type of atom that can only be set and read from outside the component.
-const gameStateAtom = atom({
+const countriesName: ICountry["name"][] = dataJSON.map(
+  (country: ICountry) => country.name
+);
+
+const countryNameEnum = countriesName.reduce((acc, name) => {
+  return { ...acc, [name]: name };
+}, {});
+
+// Alternatively, define the enum object directly:
+// const countryNameSchema = z.nativeEnum( countriesName.reduce((acc, name) => { return { ...acc, [name]: name }; }, {}));
+const countryNameSchema = z.nativeEnum(countryNameEnum);
+
+type InitialGameState = {
+  countries: ICountry[];
+  triesRemaining: number;
+  selectedCountry: ICountry | null;
+  guessedCountries: Set<string>;
+  state: GameState;
+};
+
+type GameTimeStamps = {
+  gameStartedAt: Date;
+  gameResetAt: Date;
+};
+type GameDataStateStorage = {
+  countries: ICountry[];
+  triesRemaining: number;
+  selectedCountry: ICountry | null;
+  guessedCountries: Set<string>;
+  state: GameState;
+  timeRemaining: number;
+  gameStartedAt: Date;
+  gameResetAt: Date;
+};
+
+function getGameData(
+  gameState: InitialGameState,
+  remainingTime: number,
+  gameTimeStamps: GameTimeStamps
+): GameDataStateStorage {
+  return {
+    countries: gameState.countries,
+    triesRemaining: gameState.triesRemaining,
+    selectedCountry: gameState.selectedCountry,
+    guessedCountries: gameState.guessedCountries,
+    state: gameState.state,
+    timeRemaining: remainingTime,
+    gameStartedAt: gameTimeStamps.gameStartedAt,
+    gameResetAt: gameTimeStamps.gameResetAt,
+  };
+}
+
+const initialGameState: InitialGameState = {
   countries: [] as ICountry[],
   triesRemaining: MAX_TRIES,
   selectedCountry: {} as ICountry | null,
   guessedCountries: new Set<ICountry["name"]>(), // or just collect country.
   state: GameState.Running,
-});
-
-// TODO: Add local support:
-// useEffect(() => {
-//   const fetchData = async () => {
-//     const { countries } = await import("@/lib/data/countries.json");
-//     setGameState((state) => produce(state, (draft) => { draft.countries = countries; }));
-//   };
-//
-//   fetchData();
-// }, []);
+};
+/**
+ * `gameStateAtom` is the global state of the game.
+ *
+ * `PrimitiveAtom` is a type of atom that can only be set and read from outside the component.
+ */
+const gameStateAtom = atom(initialGameState);
 
 /** `FlagGuessingGame` component renders the flag guessing game.
  *
  * @returns {JSX.Element}
  */
 function FlagGuessingGame(): JSX.Element {
-  const [guess, setGuess] = useState<ICountry["name"]>("");
-  // const selectRef = useRef<null | HTMLSelectElement>(null);
-
   const { toast, dismiss } = useToast();
+
+  const [guess, setGuess] = useState<ICountry["name"]>("");
 
   const [gameState, setGameState] = useAtom(gameStateAtom);
 
-  // const { searchResults, isLoading, error, query, setQuery } = useCountrySearch();
+  /* REGION_START: ComboBox Search... */
+
+  const searchRef = useRef<HTMLButtonElement | null>(null);
+  const [openSearch, setOpenSearch] = useState(false);
+  const [selectedOptionSearch, setSelectedOptionSearch] = useState("");
+  const [valueSearch, setValueSearch] = useState("");
+
+  /* REGION_END: ComboBox Search... */
+
+  const startGameRef = useRef<HTMLButtonElement | null>(null);
+  const [gameTimeStamps, setGameTimeStamps] = useState<GameTimeStamps>({});
+  const [remainingTime, setRemainingTime] = useState(() => {
+    return 60 / 2;
+  });
+
+  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [isUserPro, setIsUserPro] = useState(true);
+
+  // useEffect(() => {
+  //   if (remainingTime <= 0) {
+  //     handleTimeout();
+  //   }
+  // }, [remainingTime]);
+
+  const handleTimeout = () => {
+    setIsGameRunning(false);
+    setGameTimeStamps(
+      produce((draft) => {
+        draft.gameResetAt = new Date();
+      })
+    );
+    // handle game over logic here
+    // toast({
+    //   title: "Time's up!",
+    //   description: <LinkCountry gameState={gameState} />,
+    // });
+    resetGame();
+  };
+
+  const handleStartGame = async () => {
+    const gameDataArray = getGameDataArray();
+    if (gameDataArray.length > 0 && !isUserPro) {
+      toast({
+        title: `You have already played today. Please come back tomorrow.`,
+        description: (
+          <Link className="underline font-bold" href="/pro">
+            Get Pro to remove limits.
+          </Link>
+        ),
+      });
+      return;
+    }
+
+    setGameTimeStamps(
+      produce((draft) => {
+        draft.gameStartedAt = new Date();
+      })
+    );
+
+    setIsGameRunning(true);
+
+    let timeLeft = 60 / 2;
+    const countdownInterval = setInterval(() => {
+      timeLeft--;
+      if (timeLeft === 0) {
+        clearInterval(countdownInterval);
+        resetGame();
+      }
+      setRemainingTime(timeLeft);
+    }, 1000);
+
+    // Listen to the `beforeunload` event and save game data to local storage.
+    const gameData = await new Promise((resolve) => {
+      window.addEventListener("beforeunload", () => {
+        clearInterval(countdownInterval);
+        const oldData = localStorage.getItem(LocalStorageKey.GameState);
+        let dataStorage: GameDataStateStorage[] = JSON.parse(oldData || "{}");
+        const currentGameData = getGameData(
+          gameState,
+          remainingTime || timeLeft, // HACK: Which to use?
+          gameTimeStamps
+        ); // change this to the custom gameData with thimestamps
+
+        dataStorage.push(currentGameData);
+        localStorage.setItem(
+          LocalStorageKey.GameState,
+          JSON.stringify(dataStorage)
+        );
+        resolve(currentGameData);
+      });
+    });
+    if (gameData) {
+      toast({
+        title: `Game started.`,
+      });
+    }
+
+    // focus on the input.
+    if (searchRef.current) {
+      searchRef.current.focus(); // searchRef.current.blur();
+    } else {
+      toast({ title: "", description: "searchRef.current is null" });
+    }
+  };
 
   /////////////////////////////////////////////////////////////////////////////
   // REGION_START: GAME LOGIC
@@ -83,6 +237,7 @@ function FlagGuessingGame(): JSX.Element {
       gameState.countries[
         Math.floor(Math.random() * gameState.countries.length)
       ];
+
     setGameState(
       produce((draft) => {
         draft.selectedCountry = randomCountry;
@@ -91,67 +246,91 @@ function FlagGuessingGame(): JSX.Element {
   } // NOTE: The state must be manually updated before this component is rendered.
 
   // Check if the guessed country matches the selected country.
-  function checkGuessCountry() {
-    const guessedCountry = guess.trim().toLowerCase();
+  function checkGuessCountry(guessedCountry: ICountry["name"]) {
     if (guessedCountry === "") {
       toast({
-        title: "Please enter a country name",
+        title:
+          "You entered an empty string. Please enter a valid country name.",
       });
       return;
     }
-    const selectedCountry = gameState.selectedCountry?.name
-      .trim()
-      .toLowerCase();
-    if (guessedCountry === selectedCountry) {
-      setGameState(
-        produce((draft) => {
-          draft.state = GameState.Won;
-        })
-      );
 
-      toast({ title: "You won!" });
-
-      resetGame();
-    } else {
-      // Get an instance of guessedCountries and allocate/add new guessedCountry.
-      const guessedCountrySet = new Set<string>(gameState.guessedCountries);
-      guessedCountrySet.add(guessedCountry);
-      const triesRemaining = gameState.triesRemaining - 1;
-      if (triesRemaining === 0) {
-        setGameState(
-          produce((draft) => {
-            draft.state = GameState.Lost;
-            draft.triesRemaining = triesRemaining;
-            draft.guessedCountries = guessedCountrySet;
-          })
-        );
-
-        toast({ title: "You lost!" });
-
-        resetGame();
-      } else {
-        setGameState(
-          produce((draft) => {
-            draft.triesRemaining = triesRemaining;
-            draft.guessedCountries = guessedCountrySet;
-          })
-        );
-      }
+    try {
+      countryNameSchema.safeParse(guessedCountry);
+    } catch (error) {
+      toast({ title: JSON.stringify(error, null, 2) });
+      console.error(`*** ERROR: ${error} ***`);
+      return;
     }
 
-    setGuess(""); // Reset the guess.
+    const selectedCountry = gameState.selectedCountry?.name;
+    const guessedCountrySet = new Set<string>(gameState.guessedCountries);
+    guessedCountrySet.add(guessedCountry);
+    const triesRemaining = gameState.triesRemaining - 1;
+
+    if (guessedCountry === selectedCountry) {
+      toast({
+        title: "You won!",
+
+        description: <LinkCountry gameState={gameState} />,
+      });
+      setGameState(
+        produce(gameState, (draft) => {
+          draft.state = GameState.Won;
+          draft.guessedCountries = guessedCountrySet;
+        })
+      );
+      // const timer = 5; // 5 seconds.
+      toast({
+        title: "You won!",
+        description: <LinkCountry gameState={gameState} />,
+        // duration: timer * 1000,
+      });
+      resetGame();
+    } else if (triesRemaining === 0) {
+      toast({
+        title: "You lost!",
+        description: <LinkCountry gameState={gameState} />,
+      });
+      setGameState(
+        produce(gameState, (draft) => {
+          draft.state = GameState.Lost;
+          draft.triesRemaining = triesRemaining;
+          draft.guessedCountries = guessedCountrySet;
+        })
+      );
+      resetGame();
+    } else {
+      setGameState(
+        produce(gameState, (draft) => {
+          draft.triesRemaining = triesRemaining;
+          draft.guessedCountries = guessedCountrySet;
+        })
+      );
+    }
+
+    // Reset the guess.
+    setGuess("");
   } // end of selectRandomCountry.
 
-  function processTurnAndClear() {
-    checkGuessCountry();
-    // setQuery("");
+  function handleGuessSubmit(country: ICountry["name"]) {
+    checkGuessCountry(country);
     setGuess("");
+    setSelectedOptionSearch("");
   }
 
   // Reset the game.
-  function resetGame(timeout: number = 5000) {
+  function resetGame(timeout: number = 4000) {
+    const gameDataArray = getGameDataArray();
     setTimeout(() => {
-      toast({ title: "Resetting game…", duration: 4000 });
+      // Reset the remaining time.
+      // setRemainingTime(() => { return 60 / 2; }
+      setIsGameRunning(false);
+      toast({
+        title: "Resetting Game",
+        duration: 3500,
+      });
+
       setGameState(
         produce((draft) => {
           draft.triesRemaining = MAX_TRIES;
@@ -160,9 +339,19 @@ function FlagGuessingGame(): JSX.Element {
         })
       );
 
+      gameDataArray.push(getGameData(gameState, remainingTime, gameTimeStamps));
+      localStorage.setItem(
+        LocalStorageKey.GameState,
+        JSON.stringify(gameDataArray)
+      );
+
       selectRandomCountry();
 
-      toast({ title: "Game reset", duration: 1000 });
+      if (startGameRef.current) {
+        startGameRef.current.focus();
+      } else {
+        toast({ title: "", description: "startGameRef.current is null" });
+      }
     }, timeout);
   }
 
@@ -171,15 +360,73 @@ function FlagGuessingGame(): JSX.Element {
   /////////////////////////////////////////////////////////////////////////////
 
   /////////////////////////////////////////////////////////////////////////////
+  // REGION_START: GAME DATABASES
+  /////////////////////////////////////////////////////////////////////////////
+
+  function getGameDataArray(): GameDataStateStorage[] {
+    const gameDataJson = localStorage.getItem(LocalStorageKey.GameState);
+    if (!gameDataJson) {
+      return [];
+    }
+
+    return JSON.parse(gameDataJson);
+  }
+
+  /////////////////////////////////////////////////////////////////////////////
+  // REGION_END: GAME DATABASES
+  /////////////////////////////////////////////////////////////////////////////
+
+  /////////////////////////////////////////////////////////////////////////////
   // REGION_START: GAME EVENT HANDLERS
   /////////////////////////////////////////////////////////////////////////////
 
-  // TODO: implement combobox user event handling and utilize `processTurnAndClear`
-  function handleComboSelect(value: string) {
+  // Implements combobox user event handling and utilize `processTurnAndClear`
+  function handleComboSelectSearch(value: string) {
+    try {
+      const parsedCountryValue = countryNameSchema.safeParse(value);
+      if (!parsedCountryValue.success) {
+        throw new Error("Invalid country name");
+      }
+    } catch (err) {
+      toast({ title: JSON.stringify(err, null, 2) });
+      return;
+    }
+
     setGuess(value);
-    checkGuessCountry();
-    processTurnAndClear();
+    setValueSearch("");
+    handleGuessSubmit(value);
   }
+
+  /**
+   * Handles the selection of a country and updates the game state and the toast message
+   * @param currentValue - the current value of the input field
+   * @param country - the selected country object
+   */
+  // Setting country.name as it is capitalized, while radix it seems b.t.s.
+  // it lowercases currentValue or we could have used it instead of country.name.
+  function handleOptionSelectSearch(
+    currentValue: string | React.SetStateAction<string>,
+    country: ICountry
+  ) {
+    setSelectedOptionSearch(currentValue === valueSearch ? "" : country.name);
+
+    // Reset the search value.
+    setValueSearch(currentValue === valueSearch ? "" : currentValue);
+
+    setOpenSearch(false);
+
+    handleComboSelectSearch(country.name);
+  }
+
+  /**
+   * Checks if the selected country is already guessed
+   * @param country - the selected country object
+   * @returns A boolean indicating whether the country is already guessed
+   */
+  function isCountryAlreadyGuessedSearch(country: ICountry): boolean {
+    return gameState.guessedCountries.has(country.name);
+  }
+
   /////////////////////////////////////////////////////////////////////////////
   // REGION_END: GAME EVENT HANDLERS
   /////////////////////////////////////////////////////////////////////////////
@@ -188,98 +435,244 @@ function FlagGuessingGame(): JSX.Element {
   // REGION_START: GAME UI RENDERING REACT COMPONENT
   /////////////////////////////////////////////////////////////////////////////
 
-  // Get the list of remaining tries.
-  const triesRemaining = gameState.triesRemaining;
+  function LinkCountry({ gameState }: { gameState: InitialGameState }) {
+    return (
+      <Link
+        href={`/countries/${gameState.selectedCountry?.alpha3Code}`}
+        className="underline flex font-bold"
+      >
+        {gameState.selectedCountry?.name}
+      </Link>
+    );
+  }
 
-  // Get the list of guessed countries.
-  const guessedCountries = Array.from(gameState.guessedCountries);
-
+  const triesRemaining = gameState.triesRemaining; // Get the list of remaining tries.
+  const guessedCountries = Array.from(gameState.guessedCountries); // Get the list of guessed countries.
   const randomCountry = gameState.selectedCountry;
-
   const { flag, flags } = randomCountry || gameState.selectedCountry || {};
-  const imageUrl =
-    flag ||
-    flags?.png ||
-    "/assets/placeholders/flag.jpg" ||
-    require("../public/assets/placeholders/flag.jpg");
+  const imageUrl = flag || flags?.png || "/assets/placeholders/flag.jpg" || require("../public/assets/placeholders/flag.jpg"); // prettier-ignore
 
   return (
-    <section className="grid gap-4 justify-center">
-      <Heading
-        color={"default"}
-        fontWeight={"bold"}
-        variant="h1"
-        className="flex text-2xl lg:text-4xl justify-center uppercase"
-      >
-        Guess the country
-      </Heading>
+    <section className="flex flex-col w-[80vw] md:w-[60vw] mx-auto mt-6 gap-8 justify-center">
+      <div className="grid">
+        {isGameRunning ? (
+          <div
+            className={`
+              scroll-m-20 mt-10 uppercase text-4xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block`}
+          >
+            <CountdownTimer
+              initialTime={remainingTime}
+              onTimeout={handleTimeout}
+            />
+          </div>
+        ) : (
+          <Heading
+            color={"default"}
+            fontWeight={"bold"}
+            variant="h1"
+            className="uppercase text-3xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block"
+          >
+            Guess the country
+          </Heading>
+        )}
+      </div>
+
       {/* Flag ratio is commonly 3/2 or 2/1 : https://en.wikipedia.org/wiki/List_of_aspect_ratios_of_national_flags  */}
-      <div className="py-2 mx-auto w-[250px]">
+      <div className="py-2 mx-auto w-[250px] grid">
         <AspectRatio ratio={3 / 2}>
           <Image // fill
             width={250}
             height={250}
             src={imageUrl}
             alt={randomCountry?.name ?? "Flag"}
-            className={`rounded-md shadow w-[250px] aspect-video object-cover`}
+            className={`${
+              isGameRunning ? "blur-0" : "blur-xl dark:blur-2xl"
+            } rounded-md shadow w-[250px] aspect-video object-cover`}
           />
+          <div className="w-full mt-3 grid place-content-center">
+            {isGameRunning && (
+              <div
+                className={`${
+                  isGameRunning ? "opacity-100" : "opacity-0"
+                } md:hidden block font-bold text-lg`}
+              >
+                <CountdownTimer
+                  initialTime={remainingTime}
+                  onTimeout={handleTimeout}
+                />
+              </div>
+            )}
+            <div className="absolute place-self-center h-full">
+              <Button
+                ref={startGameRef}
+                onClick={handleStartGame}
+                className={`${
+                  isGameRunning ? "opacity-0" : "opacity-100"
+                } relative `}
+                variant={"subtle"}
+              >
+                {!isGameRunning && guessedCountries.length === 0 ? (
+                  <div className="absolute -top-2.5 opacity-90 right-3">
+                    <Indicator />
+                  </div>
+                ) : null}
+                Start Game
+              </Button>
+            </div>
+          </div>
+          {/* <CountdownTimer
+            initialTime={10}
+            onTimeout={(): void => {
+              toast({ title: "Time's up!" });
+            }}
+          /> */}
         </AspectRatio>
       </div>
 
-      <div className="grid relative rounded-lg outline outline-slate-200 dark:outline-slate-700 overflow-clip">
+      <div
+        onClick={(e) => {
+          if (!isGameRunning && startGameRef.current) {
+            startGameRef.current.focus();
+            toast({
+              title: "You must start the game first!",
+            });
+          }
+        }}
+        className="grid gap-y-2 relative rounded-lg! min-w-[300px] outline! outline-slate-200! dark:outline-slate-700! overflow-clip!"
+      >
+        {/*
+          A CommandCombobox component that allows the user to search and select a country.
+          @remarks
+          This component uses the useQueryAllCountries hook to fetch the list of countries.
+          It renders a button that displays a dropdown of the list of countries in a Command UI.
+          The user can search for a country by typing in the input box and select a country by clicking on it.
+          @returns The CommandCombobox component.
+        */}
+        <Popover open={openSearch} onOpenChange={setOpenSearch}>
+          <PopoverTrigger
+            // className="disabled:outline disabled:outline-1 disabled-outline-slate-200 disabled:dark:outline-slate-700"
+            disabled={!isGameRunning}
+            asChild
+          >
+            <Button
+              id="search-country"
+              ref={searchRef}
+              variant="outline"
+              role="combobox"
+              aria-expanded={openSearch}
+              className="min-w-[200px] relative justify-between"
+            >
+              {isGameRunning && guessedCountries.length === 0 ? (
+                <div className="absolute -top-2.5 opacity-90 right-3">
+                  <Indicator />
+                </div>
+              ) : null}
+              {selectedOptionSearch || "Select a country…"}
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+
+          <PopoverContent className="min-w-[200px] w-full max-h-[350px]! p-0">
+            <Command>
+              <CommandInput
+                autoFocus={true}
+                placeholder="Search a country…"
+                // onBlur={(e) => setValueSearch("")}
+                value={valueSearch}
+                onValueChange={(search) => {
+                  setOpenSearch(true);
+                  setGuess(search);
+                  setValueSearch(search);
+                }}
+              />
+              <CommandEmpty>No countries found.</CommandEmpty>
+              {gameState.countries ? (
+                <CommandGroup>
+                  <ScrollArea className="h-[200px] w-full min-w-[350px] rounded-md border p-4">
+                    {gameState.countries.map((country, idxCountry) => (
+                      <CommandItem
+                        aria-disabled={isCountryAlreadyGuessedSearch(country)}
+                        disabled={isCountryAlreadyGuessedSearch(country)}
+                        key={`${country.alpha3Code}-${idxCountry}-countryItem`}
+                        onSelect={(value) =>
+                          handleOptionSelectSearch(value, country)
+                        }
+                        className="disabled:opacity-70"
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            isCountryAlreadyGuessedSearch(country) ||
+                              selectedOptionSearch === country.name
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {country.name}
+                      </CommandItem>
+                    ))}
+                  </ScrollArea>
+                </CommandGroup>
+              ) : null}
+            </Command>
+          </PopoverContent>
+        </Popover>
+
         <Button
-          onClick={checkGuessCountry}
-          className="rounded-none"
+          onClick={() => handleGuessSubmit(guess)}
+          className="hidden"
           variant="default"
         >
           Guess
         </Button>
         <Button
           onClick={selectRandomCountry}
-          className="rounded-none"
+          className="hidden"
           variant="outline"
         >
           Skip
         </Button>
-
-        {/* <CommandCombobox /> */}
-        <CommandCombobox
-          // options={gameState.countries.map((country) => country.name)}
-          options={gameState.countries}
-          onSelect={handleComboSelect}
-          value={guess}
-          setGuess={setGuess}
-          placeholder="Select a country"
-        />
       </div>
 
       <>
-        {Array.from(guessedCountries).map((guessed, idxGuessed) => (
-          <Heading
-            key={`guessed-${guessed}-${idxGuessed}-${gameState.selectedCountry?.name}`}
-            className="leading-none my-0 py-0 tracking-widest"
-          >
-            <>
-              {guessed &&
-                guessed.split("").map((char, i) => (
-                  <span
-                    key={`char-${i}-${char}-${idxGuessed}-${guessed.length}`}
-                    className={
-                      gameState.selectedCountry?.name.includes(char)
-                        ? "text-green-500"
-                        : ""
-                    }
-                  >
-                    {char}
-                  </span>
-                ))}
-            </>
-          </Heading>
-        ))}
+        <div className="grid gap-y-2 md:gap-y-3">
+          {Array.from(Array(MAX_TRIES).keys()).map((idxGuessed) => {
+            const country = guessedCountries[idxGuessed];
+
+            return (
+              <div
+                key={`guessed-${country}-${idxGuessed}-${gameState.selectedCountry?.name}`}
+                className="grid grid-flow-col-dense items-baseline"
+              >
+                {country ? (
+                  <>
+                    <Heading className="leading-none uppercase my-0 py-0 tracking-widest">
+                      {country.split("").map((char, i) => (
+                        <span
+                          key={`char-${i}-${char}-${idxGuessed}-${country.length}`}
+                          className={
+                            gameState.selectedCountry?.name.includes(char)
+                              ? "text-green-500"
+                              : ""
+                          }
+                        >
+                          {char}
+                        </span>
+                      ))}
+                    </Heading>
+                    <Directions gameState={gameState} guessed={country} />
+                  </>
+                ) : (
+                  <Skeleton className="min-w-[100px] min-h-[22px] rounded-sm" />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </>
 
       {/* debug only*/}
-      <div className="relative">
+      <div className="relative opacity-0 hover:opacity-40">
         <div className="grid opacity-40 grid-flow-col! absolute top-4 text-xs space-x-4! justify-center">
           <p>Tries Remaining: {triesRemaining}</p>
           <p>Guessed Countries: {guessedCountries.join(", ")}</p>
@@ -290,7 +683,6 @@ function FlagGuessingGame(): JSX.Element {
             <h2 className="sr-only">You lost!</h2>
           )}
           <pre className="hidden!">
-            {" "}
             {gameState.selectedCountry?.name} <br />{" "}
             {JSON.stringify(guess, null, 2)} <br />{" "}
             <div className="hidden">{JSON.stringify(gameState, null, 2)}</div>{" "}
@@ -303,417 +695,161 @@ function FlagGuessingGame(): JSX.Element {
   /////////////////////////////////////////////////////////////////////////////
   // REGION_END: GAME UI RENDERING REACT COMPONENT
   /////////////////////////////////////////////////////////////////////////////
-}
+} // end of CountryGuessingGame.
 
-type CommandComboboxProps = {
-  options: ICountry[]; // all countries available.
-  onSelect: (value: string) => void; // used to setGuess(value) and checkCountryGuess.
-  value: string; // guess.
-  setGuess: (value: string) => void; // used to setGuess(value).
-  placeholder?: string;
+export { FlagGuessingGame, gameStateAtom, GameState };
 
-  // options={gameState.countries.map((country) => country.name)}
-  // onChange={handleComboChange}
-  // value={guess}
-  // placeholder="Select a country"
+// TODO: Add local support:
+//
+// useEffect(() => {
+//   const fetchData = async () => {
+//     const { countries } = await import("@/lib/data/countries.json");
+//     setGameState((state) => produce(state, (draft) => { draft.countries = countries; }));
+//   }; fetchData();
+// }, []);
+//
+//
+
+type DirectionsProps = {
+  gameState: InitialGameState;
+  guessed: ICountry["name"];
 };
 
-/**
- * A CommandCombobox component that allows the user to search and select a country.
- * @remarks
- * This component uses the useQueryAllCountries hook to fetch the list of countries.
- * It renders a button that displays a dropdown of the list of countries in a Command UI.
- * The user can search for a country by typing in the input box and select a country by clicking on it.
- * @returns The CommandCombobox component.
- * @beta
- */
-function CommandCombobox({
-  options: data,
-  onSelect,
-  value: guess,
-  setGuess,
-  placeholder,
-}: CommandComboboxProps) {
-  const [open, setOpen] = useState(false);
-  const [selectedOption, setSelectedOption] = useState("");
-  const [value, setValue] = useState("");
+export function Directions({ gameState, guessed }: DirectionsProps) {
+  const guessedCountry = gameState.countries.find(
+    (country) => country.name === guessed
+  );
+  const guessedCoords = guessedCountry?.latlng ?? [0, 0];
 
-  const { toast } = useToast();
+  const selectedCountry = gameState.selectedCountry;
+  const targetCoords = selectedCountry?.latlng ?? [0, 0];
 
-  const [gameState, setGameState] = useAtom(gameStateAtom);
+  const distance = haversine(
+    [guessedCoords[0], guessedCoords[1]],
+    [targetCoords[0], targetCoords[1]]
+  ).toFixed(0);
 
-  // const { data, isLoading, error } = useQueryAllCountries();
-
-  /**
-    Handles the selection of a country and updates the game state and the toast message
-    @param currentValue - the current value of the input field
-    @param country - the selected country object
-    */
-  function handleOptionSelect(
-    currentValue: string | React.SetStateAction<string>,
-    country: ICountry
-  ) {
-    // const guessedCountriesSet = new Set<string>(gameState.guessedCountries);
-    // guessedCountriesSet.add(country.name);
-
-    setSelectedOption(currentValue === value ? "" : country.name); // Setting country.name as it is capitalized, while radix it seems b.t.s. lowercases currentValue or we could have used it instead of country.name.
-    setValue(currentValue === value ? "" : currentValue); // Reset the search value.
-    setOpen(false);
-
-    // const updatedGameState = produce(gameState, (draft) => {
-    //   draft.state = GameState.Lost;
-    //   draft.triesRemaining--;
-    //   draft.guessedCountries = guessedCountriesSet;
-    // });
-    // setGameState(updatedGameState);
-
-    // const guessedCountries = Array.from(guessedCountriesSet);
-    // toast({
-    //   title: JSON.stringify(guessedCountries, null, 2),
-    //   description: updatedGameState.triesRemaining,
-    // });
-    setGuess(country.name);
-    toast({ title: country.name });
-    onSelect(country.name);
+  let direction = "";
+  const latDiff = targetCoords[0] - guessedCoords[0];
+  const lonDiff = targetCoords[1] - guessedCoords[1];
+  if (latDiff > 0 && lonDiff > 0) {
+    direction = "↗️"; // NE
+  } else if (latDiff > 0 && lonDiff < 0) {
+    direction = "↖️"; // NW
+  } else if (latDiff < 0 && lonDiff < 0) {
+    direction = "↙️"; // SW
+  } else if (latDiff < 0 && lonDiff > 0) {
+    direction = "↘️"; // SE
   }
-  useEffect(() => {
-    setGuess(selectedOption);
-  }, [value]);
-
-  /**
-
-    Checks if the selected country is already guessed
-    @param country - the selected country object
-    @returns A boolean indicating whether the country is already guessed
-    */
-  function isCountryAlreadyGuessed(country: ICountry): boolean {
-    return gameState.guessedCountries.has(country.name);
-  }
-
-  // Display a loading spinner while data is being fetched.
-  // if (isLoading) { return <div>Loading...</div>; }
-
-  // Display an error message if there was an error fetching the data.
-  // if (error instanceof Error) { return <div>Error: {error.message}</div>; }
 
   return (
-    <div className="grid">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="min-w-[200px] justify-between"
-          >
-            {selectedOption || "Select a country…"}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="min-w-[200px] w-full max-h-[350px]! p-0">
-          <Command>
-            {guess}
-            <CommandInput
-              onValueChange={(search) => {
-                setValue(search);
-                setOpen(true);
-                setGuess(search);
-              }}
-              placeholder="Search a country…"
-            />
-            <CommandEmpty>No countries found.</CommandEmpty>
-            {data ? (
-              <CommandGroup>
-                <ScrollArea className="h-[200px] w-[350px] rounded-md border p-4">
-                  {data.map((country, idxCountry) => (
-                    <CommandItem
-                      aria-disabled={isCountryAlreadyGuessed(country)}
-                      disabled={isCountryAlreadyGuessed(country)}
-                      key={`${country.alpha3Code}-${idxCountry}-countryItem`}
-                      onSelect={(value) => handleOptionSelect(value, country)}
-                      className="disabled:opacity-70"
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4", // selectedOption === country.name // selectedOption === country.name.toLowerCase() ||
-                          isCountryAlreadyGuessed(country) ||
-                            selectedOption === country.name
-                            ? "opacity-100"
-                            : "opacity-0"
-                        )}
-                      />
-                      {country.name}
-                    </CommandItem>
-                  ))}
-                </ScrollArea>
-              </CommandGroup>
-            ) : null}
-          </Command>
-        </PopoverContent>
-      </Popover>
+    <div className="ms-auto text-xs px-2">
+      {gameState.selectedCountry && (
+        <div className="flex items-center">
+          <span className="font-bold">{distance}</span>
+          <span className="ml-2">{direction}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-export { FlagGuessingGame, gameStateAtom, GameState };
+type CountdownTimerProps = {
+  initialTime: number;
+  onTimeout: () => void;
+};
 
-// function CommandCombobox(): React.ReactElement {
-//   const [isOpen, setIsOpen] = React.useState(false);
-//   const [selectedOption, setSelectedOption] = React.useState<string>("");
-//   const [searchValue, setSearchValue] = React.useState<string>("");
+function CountdownTimer({ initialTime, onTimeout }: CountdownTimerProps) {
+  const [time, setTime] = useState(initialTime);
+  const [mounted, setMounted] = useState(true);
 
-//   const {
-//     data: countries,
-//     isLoading: isCountriesLoading,
-//     error: countriesError,
-//   } = useQueryAllCountries();
+  useEffect(() => {
+    if (mounted) {
+      const timer = setInterval(() => {
+        setTime((prevTime: number) => prevTime - 1);
+      }, 1000);
+      return () => {
+        clearInterval(timer);
+      };
+    }
+  }, [mounted]);
 
-//   const handleSearchValueChange = (newValue: string): void => {
-//     setSearchValue(newValue);
-//     setIsOpen(true);
+  useEffect(() => {
+    if (time <= 0 && mounted) {
+      setMounted(false);
+      onTimeout();
+    }
+  }, [time]);
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${
+      remainingSeconds < 10 ? "0" : ""
+    }${remainingSeconds}`;
+  };
+
+  const getTimeAwareColor = (remainingTime: number) => {
+    if (remainingTime <= 5) {
+      return cn("text-red-500 animate-pulse dark:text-red-400");
+    } else if (remainingTime > 5 && remainingTime <= 10) {
+      return cn("text-red-500 dark:text-red-400");
+    } else if (remainingTime <= 20) {
+      return cn("text-orange-500 dark:text-orange-400");
+    } else {
+      return cn("");
+    }
+  };
+
+  return (
+    <span className={`${getTimeAwareColor(time)}`}>{formatTime(time)}</span>
+  );
+}
+
+// {/* <div // className="timer bg-red-300" style={{ background: `hsl(${progress * 60}, 100, 50)` }} */}
+// {/* > */}
+// {/*   <style jsx global> */}
+// {/*     {` */}
+// {/*      .progress-bar { */}
+// {/*         background-color: hsl(${progress * Math.PI + 60}, 75%, 50%) !important; */}
+// {/*         height: 4px; */}
+// {/*         margin-block-start: 4px; */}
+// {/*       } */}
+// {/*       .progress-bar > * { */}
+// {/*         background-color: hsl(${progressLaps + 33}, 100%, 50%) !important; */}
+// {/*       } */}
+// {/*     `} */}
+// {/*   </style> */}
+// {/*   {/* <Loader2 className="animate-spin" /> */} */}
+// {/*   <Progress */}
+// {/*     value={progress} */}
+// {/*     // Does w-[60%] mean 60 seconds? or just aesthetic? */}
+// {/*     // className={`w-[60%] [&>*]:bg-[hsl(${progressLaps * 5 + 100},100,50)]`} */}
+// {/*     className={`w-[100%] progress-bar`} */}
+// {/*       /> */}
+// {/*       <span className="text-xs flex justify-center"> */}
+// {/*       {progress.toFixed(2)} / {progressLaps} */}
+// {/**/}
+// {/*       </span> */}
+// {/* </div> */}
+
+// const [progress, setProgress] = useState(0);
+// const [progressLaps, setProgressLaps] = useState(0);
+// useEffect(() => {
+//   const updateCounter = () => {
+//     if (progress >= 100) {
+//       setProgressLaps(progressLaps + 1);
+//     }
+//     if (progress >= 100) {
+//       return 0;
+//     }
+//     return progress + 0.05;
 //   };
-
-//   const handleCountrySelect = (countryName: string): void => {
-//     const isSelected = selectedOption === countryName;
-//     setSelectedOption(isSelected ? "" : countryName);
-//     setSearchValue(isSelected ? "" : countryName);
-//     setIsOpen(false);
+//   const timer = setTimeout(() => {
+//     setProgress(updateCounter());
+//   }, 0.001); // 50ms frame rate.
+//   return () => {
+//     clearTimeout(timer);
+//     // if (progress >= 100) { setProgressLaps((prev) => prev++); setProgress(0); }
 //   };
-
-//   const renderCountries = (): React.ReactElement | null => {
-//     if (!countries) {
-//       return null;
-//     }
-
-//     const filteredCountries = countries.filter((country) =>
-//       country.name.toLowerCase().includes(searchValue.toLowerCase())
-//     );
-
-//     if (filteredCountries.length === 0) {
-//       return <CommandEmpty>No countries found.</CommandEmpty>;
-//     }
-
-//     return (
-//       <ScrollArea className="h-[200px] w-[350px] rounded-md border p-4">
-//         {filteredCountries.map((country) => (
-//           <CommandItem
-//             key={country.alpha3Code}
-//             onSelect={() => handleCountrySelect(country.name)}
-//           >
-//             <Check
-//               className={`mr-2 h-4 w-4 ${
-//                 selectedOption === country.name ? "opacity-100" : "opacity-0"
-//               }`}
-//             />
-//             {country.name}
-//           </CommandItem>
-//         ))}
-//       </ScrollArea>
-//     );
-//   };
-
-//   const renderLoading = (): React.ReactElement => <div>Loading...</div>;
-
-//   const renderError = (): React.ReactElement => (
-//     <div>Error: {countriesError?.message}</div>
-//   );
-
-//   return (
-//     <div className="grid">
-//       <Popover open={isOpen} onOpenChange={setIsOpen}>
-//         <PopoverTrigger asChild>
-//           <Button
-//             variant="outline"
-//             role="combobox"
-//             aria-expanded={isOpen}
-//             className="min-w-[200px] justify-between"
-//           >
-//             {selectedOption || "Select a country..."}
-//             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-//           </Button>
-//         </PopoverTrigger>
-//         <PopoverContent className="min-w-[200px] w-full max-h-[350px]! p-0">
-//           <Command>
-//             <CommandInput
-//               onValueChange={handleSearchValueChange}
-//               placeholder="Search a country..."
-//             />
-//             {isCountriesLoading
-//               ? renderLoading()
-//               : countriesError
-//               ? renderError()
-//               : renderCountries()}
-//           </Command>
-//         </PopoverContent>
-//       </Popover>
-//     </div>
-//   );
-// }
-
-/////////////////////////////////////////////////////////////////////////////
-// REGION_START: GAME EVENT HANDLERS
-/////////////////////////////////////////////////////////////////////////////
-
-// function handleInputOnChange(e: ChangeEvent<HTMLInputElement>) {
-//   e.preventDefault();
-//   setQuery(e.currentTarget.value);
-//   setGuess(e.target.value);
-// }
-
-// function handleSelectChange(event: ChangeEvent<HTMLSelectElement>) {
-//   event.preventDefault();
-//   const selectedOptions = Array.from(
-//     event?.target.selectedOptions,
-//     (option) => option.value
-//   );
-//   const alpha3Code = selectedOptions[0];
-//
-//   if (!gameState.countries) {
-//     toast({
-//       title: ` Country list is empty.`,
-//     });
-//     return;
-//   }
-//   const c = gameState.countries.find(
-//     (country) => country.alpha3Code === alpha3Code
-//   )?.name;
-//   if (!c) {
-//     toast({
-//       title: `Cannot find country with alpha3Code: ${alpha3Code}`,
-//     });
-//     return;
-//   }
-//   setGuess(c);
-// }
-
-// function handleSelectKeyPress(event: KeyboardEvent<HTMLSelectElement>) {
-//   if (event.key === "Enter") {
-//     event.preventDefault();
-//     const alpha3Code = selectRef.current?.value;
-//
-//     if (!gameState.countries) {
-//       toast({
-//         title: ` Country list is empty.`,
-//       });
-//       return;
-//     }
-//     const c = gameState.countries.find(
-//       (country) => country.alpha3Code === alpha3Code
-//     )?.name;
-//     if (!c) {
-//       toast({
-//         title: `Cannot find country with alpha3Code: ${alpha3Code}`,
-//       });
-//       return;
-//     }
-//     setGuess(c);
-//     toast({
-//       title: `Guessing ${c}…`,
-//       duration: 200,
-//     });
-//     processTurnAndClear();
-//   } else {
-//     return;
-//   }
-// }
-
-// function handleOptionClick(
-//   event: MouseEvent<HTMLOptionElement, globalThis.MouseEvent>
-// ) {
-//   event.preventDefault();
-//   const alpha3Code = event.currentTarget.value;
-//   const c = gameState.countries.find(
-//     (country) => country.alpha3Code === alpha3Code
-//   )?.name;
-//
-//   if (!c) {
-//     toast({
-//       title: `Cannot find country with alpha3Code: ${alpha3Code}`,
-//     });
-//     return;
-//   }
-//
-//   setGuess(c);
-//   toast({
-//     title: `Guessing ${c}…`,
-//     duration: 200,
-//   });
-//   processTurnAndClear();
-// }
-
-// function handleSelectCountryInputOptionOnChange(
-//   e: ChangeEvent<HTMLInputElement>
-// ) {
-//   e.preventDefault();
-//   const value = e.target.value;
-//   toast({ title: value });
-//   setQuery(e.currentTarget.value);
-//   setGuess(e.target.value);
-// }
-
-// function handleInputOnBlur(e: FocusEvent<HTMLInputElement, Element>) {
-//   e.preventDefault();
-//   const value = e.target.value;
-//   toast({ title: `onBlur: ${value}` });
-// }
-
-/////////////////////////////////////////////////////////////////////////////
-// REGION_END: GAME EVENT HANDLERS
-/////////////////////////////////////////////////////////////////////////////
-
-// function getCountryInfo(countries: ICountry[], alpha3Code: string) {
-//   return countries.find((c) => c.alpha3Code === alpha3Code);
-// }
-
-// type CountryOptionProps = {
-//   item: ICountry;
-//   score: number;
-//   index: number | string;
-// };
-
-// function CountryOption({
-//   item,
-//   score,
-//   index,
-// }: CountryOptionProps): JSX.Element {
-//   const value = item.alpha3Code;
-//   // const value = encodeURIComponent(JSON.stringify(item));
-//   const label = `${item.name}  (${(score * 100).toFixed(0)})`;
-//   const id = `country-option-${item.alpha3Code}-${index}`;
-
-//   return (
-//     <option
-//       id={id}
-//       value={value}
-//       key={`country-option-${item.alpha3Code}-${index}`}
-//     >
-//       {label}
-//     </option>
-//   );
-// }
-
-// function CountryOptionsList({
-//   searchResults,
-// }: {
-//   searchResults: SearchResult[] | null;
-// }): JSX.Element {
-//   const options = searchResults
-//     ?.filter((result) => {
-//       const score = (result.score ?? -1) * 100;
-//       return score >= 0 && score <= 400 && result.score;
-//     })
-//     .map((result, index) => (
-//       <CountryOption
-//         key={`country-option-${result.item.alpha3Code}-${index}`}
-//         item={result.item}
-//         score={result.score ?? -1}
-//         index={index}
-//       />
-//     ));
-
-//   return (
-//     <div className="grid h-full min-h-[300px] gap-1 overflow-y-auto">
-//       <datalist id="countries">{options}</datalist>
-//     </div>
-//   );
-// }
+// }, [progress]);
