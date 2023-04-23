@@ -77,6 +77,18 @@ When you are viewing detailed information about a country, you can see a list of
 - `public` — Static files that are served by Next.js.
 - `styles` — Global styles and Tailwind CSS configuration.
 
+## development
+
+### Testing
+
+#### Playwright Codegen
+
+Interact and copy the e2e code generated. Use it in `tests` folder.
+
+```shell
+pnpx playwright codegen localhost:3000
+```
+
 ## Similar Projects
 
 - [Countries Of The World](https://countries.petethompson.net/)

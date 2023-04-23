@@ -170,8 +170,9 @@ describe("fetcher", () => {
     global.fetch = mockFetch;
   });
 
+  //? The afterAll hook is called after all the tests have finished running, and it resets the global fetch function by rebinding it to the window object.
   afterAll(() => {
-    delete global.fetch; // FIX: The operand of a 'delete' operator must be optional.ts(2790) ⚠ Error(TS2790) |
+    global.fetch = global.fetch.bind(window);
   });
 
   describe("when the fetch request is successful", () => {

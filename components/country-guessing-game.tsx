@@ -499,6 +499,7 @@ function FlagGuessingGame(): JSX.Element {
             )}
             <div className="absolute place-self-center h-full">
               <Button
+                data-testid="startGameButton"
                 ref={startGameRef}
                 onClick={handleStartGame}
                 className={`${
@@ -539,13 +540,14 @@ function FlagGuessingGame(): JSX.Element {
         */}
         <Popover open={openSearch} onOpenChange={setOpenSearch}>
           <PopoverTrigger
-            // className="disabled:outline disabled:outline-1 disabled-outline-slate-200 disabled:dark:outline-slate-700"
             disabled={!isGameRunning}
+            data-testid="searchCountryTrigger"
             asChild
           >
             <Button
               id="search-country"
               ref={searchRef}
+              data-testid="searchCountryTriggerButton"
               variant="outline"
               role="combobox"
               aria-expanded={openSearch}
