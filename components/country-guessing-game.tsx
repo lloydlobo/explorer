@@ -86,7 +86,7 @@ const initialGameState: InitialGameState = {
   gameResetAt: null,
   maxTries: MAX_TRIES,
   gameDuration: TIME_LIMIT,
-  graceTimeAtTry: 5,
+  graceTimeAtTry: z.number().parse(5),
 };
 /**
  * `gameStateAtom` is the global state of the game.

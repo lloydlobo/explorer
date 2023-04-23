@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "lint": "next lint",
     "test": "jest --watch",
-    "lint": "next lint"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.16.4",
@@ -52,6 +53,7 @@
     "typescript": "5.0.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.32.3",
     "@swc-jotai/react-refresh": "^0.0.7",
     "@tanstack/react-query-devtools": "^4.29.1",
     "@testing-library/jest-dom": "^5.16.5",
