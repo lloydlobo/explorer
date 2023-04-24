@@ -48,12 +48,17 @@ import { useMemo, useState } from "react";
  * }
  * ```
  */
-export function usePagination<T extends Array<any>>(
-  data: T,
+export function usePagination<T extends Array<any>>({
+  data,
   initalPageSize = 10,
   initalPageIndex = 0,
-  manualPagination = false
-) {
+  manualPagination = false,
+}: {
+  data: T;
+  initalPageSize?: number;
+  initalPageIndex?: number;
+  manualPagination?: boolean;
+}) {
   const [pageSize, setPageSize] = useState(initalPageSize);
   const [pageIndex, setPageIndex] = useState(initalPageIndex);
 

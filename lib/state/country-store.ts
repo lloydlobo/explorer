@@ -1,17 +1,19 @@
 import { atom, useAtom } from "jotai";
 import produce from "immer";
-import { Region, ViewType } from "../enums";
+import { Region, ResultsPerPage, ViewType } from "@/lib/enums";
 
 interface AppState {
   selectedCountry: string | null;
   selectedRegion: Region;
   selectedView: ViewType;
+  selectedResultsPerPage: ResultsPerPage;
 }
 
 const appStateAtom = atom<AppState>({
   selectedCountry: null,
   selectedRegion: Region.All,
   selectedView: ViewType.Cards,
+  selectedResultsPerPage: ResultsPerPage.Ten,
 });
 
 /**
@@ -60,6 +62,13 @@ export function useCountryStore() {
       })
     );
 
+  const setSelectedResultsPerPage = (selectedResultsPerPage: ResultsPerPage) =>
+    setAppState(
+      produce((draft) => {
+        draft.selectedResultsPerPage = selectedResultsPerPage;
+      })
+    );
+
   return {
     /**
      * `selectedCountry`: The currently selected country from the app state.
@@ -89,6 +98,8 @@ export function useCountryStore() {
      * and updates the selectedView value in the app state.
      */
     setSelectedView,
+    selectedResultsPerPage: appState.selectedResultsPerPage,
+    setSelectedResultsPerPage,
   };
 }
 

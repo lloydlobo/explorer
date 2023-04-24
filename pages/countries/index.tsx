@@ -3,6 +3,13 @@ import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
 import { GetStaticProps, NextPage } from "next";
 import * as z from "zod";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CountryCard } from "@/components/country/country-card";
 import { CountryTable } from "@/components/country/country-table";
 import Layout from "@/components/layout";
@@ -34,8 +41,14 @@ type CountriesPageProps = {
 const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   const { toast } = useToast();
 
-  const { selectedRegion, setSelectedRegion, selectedView, setSelectedView } =
-    useCountryStore();
+  const {
+    selectedRegion,
+    setSelectedRegion,
+    selectedView,
+    setSelectedView,
+    selectedResultsPerPage,
+    setSelectedResultsPerPage,
+  } = useCountryStore();
   const { isOpenBanner } = useAppStore();
 
   const {
@@ -237,8 +250,13 @@ export function PaginatedCollection<T>({
   data,
   ...props
 }: PaginatedCollectionProps<T>) {
+  const { selectedResultsPerPage, setSelectedResultsPerPage } =
+    useCountryStore();
   const { selectedView, setSelectedView } = useCountryStore();
-  const pagination = usePagination(data);
+  const pagination = usePagination({
+    data,
+    initalPageSize: selectedResultsPerPage,
+  });
 
   const {
     pageSize,
@@ -271,7 +289,7 @@ export function PaginatedCollection<T>({
   // Render your table with the "page" array
   return (
     <>
-      <div className=" scroll-mt-24!">
+      <div className=" scroll-mt-24! pb-8">
         <div className="flex top-24! sticky! items-center justify-between border-t border-gray-200! bg-white! px-4 py-3 sm:px-6">
           <div className="flex flex-1 justify-between sm:hidden">
             <Button
@@ -283,6 +301,7 @@ export function PaginatedCollection<T>({
             >
               Previous
             </Button>
+
             <Button
               title={"Next"}
               onClick={nextPage}
@@ -293,6 +312,7 @@ export function PaginatedCollection<T>({
               Next
             </Button>
           </div>
+
           <div className="hidden sm:flex sm:flex-1 sm:justify-between sm:items-center">
             <div>
               <p className="text-sm text-muted-foreground">
@@ -305,6 +325,14 @@ export function PaginatedCollection<T>({
                 results
               </p>
             </div>
+
+            <SelectResultsPerPage
+              selectedValue={selectedResultsPerPage}
+              handleSelectResultsPerPage={(value) => {
+                setSelectedResultsPerPage(value);
+                setPageSize(z.number().parse(Number(value)));
+              }}
+            />
             <div>
               <nav
                 className="inline-flex -space-x-px rounded-md shadow-sm isolate"
@@ -338,7 +366,7 @@ export function PaginatedCollection<T>({
 
         {/* {page.map(renderItem)} */}
         <div className="relative">
-          <ScrollArea className="p-4 w-full rounded-md border h-[75vh] min-w-[350px]">
+          <ScrollArea className="p-4 w-full rounded-md border h-[78vh] min-w-[350px]">
             {selectedView === ViewType.Default ||
             selectedView === ViewType.Cards ? (
               <CountryCards cardsData={page} />
@@ -390,21 +418,9 @@ function renderPageButton(
   );
 }
 
-/*
-
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import { ResultsPerPage } from "@/lib/enums";
-
 type SelectResultsPerPageProps = {
-  selectedValue: string;
-  handleSelectResultsPerPage: (value: string) => void;
+  selectedValue: ResultsPerPage;
+  handleSelectResultsPerPage: (value: ResultsPerPage) => void;
 };
 
 export function SelectResultsPerPage({
@@ -413,8 +429,10 @@ export function SelectResultsPerPage({
 }: SelectResultsPerPageProps) {
   return (
     <Select
-      value={selectedValue}
-      onValueChange={(value) => handleSelectResultsPerPage(value)}
+      value={z.string().parse(selectedValue.toString())}
+      onValueChange={(value) =>
+        handleSelectResultsPerPage(value as unknown as ResultsPerPage)
+      }
     >
       <SelectTrigger
         title="Select results per page to view"
@@ -428,7 +446,7 @@ export function SelectResultsPerPage({
           <span className="capitalize">{ResultsPerPage.Ten}</span>
         </SelectItem>
         <SelectItem value={ResultsPerPage.Twenty.toString()}>
-          <span className="capitalize">{ResultsPerPage.Ten}</span>
+          <span className="capitalize">{ResultsPerPage.Twenty}</span>
         </SelectItem>
         <SelectItem value={ResultsPerPage.Fifty.toString()}>
           <span className="capitalize">{ResultsPerPage.Fifty}</span>
@@ -445,10 +463,3 @@ export function SelectResultsPerPage({
     </Select>
   );
 }
-
-
-
-
-
-
-*/
