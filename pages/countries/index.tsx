@@ -23,12 +23,13 @@ import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import { cn, fetcher } from "@/lib/utils";
 import produce from "immer";
-import { SelectResultsPerPage } from "./SelectResultsPerPageProps";
+/* import { SelectResultsPerPage } from "./SelectResultsPerPageProps"; */
 import { usePagination } from "@/lib/hooks/use-pagination";
 import { CountryCard } from "@/components/country/country-card";
 import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CountryTable } from "@/components/country/country-table";
 
 type CountriesPageProps = {
   countries: ICountry[];
@@ -140,7 +141,16 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
         />
       ) : null} */}
 
-      {countries ? <PaginatedCollection data={filteredCountries} /> : null}
+      <div className="data">
+        {countries ? (
+          selectedView === ViewType.Default ||
+          selectedView === ViewType.Cards ? (
+            <PaginatedCollection data={filteredCountries} />
+          ) : selectedView === ViewType.Table ? (
+            <PaginatedCollection data={filteredCountries} />
+          ) : null
+        ) : null}
+      </div>
     </Layout>
   );
 };
@@ -186,10 +196,30 @@ type PaginatedCollectionProps<T> = {
   data: Array<T>;
 };
 
+type CountryCardsProps = {
+  cardsData: {
+    [key: string]: any;
+  }[] extends Array<ICountry>
+    ? Array<ICountry>
+    : any[];
+};
+function CountryCards({ cardsData }: CountryCardsProps) {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {cardsData.map((country: ICountry, idxCountry: number) => (
+        <div key={`country-card-${country.alpha3Code}-${idxCountry}`}>
+          <CountryCard country={country} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function PaginatedCollection<T>({
   data,
   ...props
 }: PaginatedCollectionProps<T>) {
+  const { selectedView, setSelectedView } = useCountryStore();
   const pagination = usePagination(data);
 
   const {
@@ -288,19 +318,19 @@ export function PaginatedCollection<T>({
           </div>
         </div>
 
+        {/* {page.map(renderItem)} */}
         <div className="relative">
           <ScrollArea className="h-[75vh] w-full min-w-[350px] rounded-md border p-4">
-            <div
-              className={"grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4"}
-              {...props}
-            >
-              {/* {page.map(renderItem)} */}
-              {page.map((country: ICountry, idxCountry) => (
-                <div key={`country-card-${country.alpha3Code}-${idxCountry}`}>
-                  <CountryCard country={country} />
-                </div>
-              ))}
-            </div>
+            {selectedView === ViewType.Default ||
+            selectedView === ViewType.Cards ? (
+              <CountryCards cardsData={page} />
+            ) : selectedView === ViewType.Table ? (
+              <CountryTable
+                headerData={["Name", "Capital", "Population"]}
+                keysToRender={["name", "capital", "population"]}
+                tableData={page}
+              />
+            ) : null}
           </ScrollArea>
         </div>
       </div>
@@ -341,3 +371,66 @@ function renderPageButton(
     </Button>
   );
 }
+
+/*
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import { ResultsPerPage } from "@/lib/enums";
+
+type SelectResultsPerPageProps = {
+  selectedValue: string;
+  handleSelectResultsPerPage: (value: string) => void;
+};
+
+export function SelectResultsPerPage({
+  selectedValue,
+  handleSelectResultsPerPage,
+}: SelectResultsPerPageProps) {
+  return (
+    <Select
+      value={selectedValue}
+      onValueChange={(value) => handleSelectResultsPerPage(value)}
+    >
+      <SelectTrigger
+        title="Select results per page to view"
+        className="w-[180px]"
+      >
+        <SelectValue placeholder="Select results per page" />
+      </SelectTrigger>
+
+      <SelectContent>
+        <SelectItem value={ResultsPerPage.Ten.toString()}>
+          <span className="capitalize">{ResultsPerPage.Ten}</span>
+        </SelectItem>
+        <SelectItem value={ResultsPerPage.Twenty.toString()}>
+          <span className="capitalize">{ResultsPerPage.Ten}</span>
+        </SelectItem>
+        <SelectItem value={ResultsPerPage.Fifty.toString()}>
+          <span className="capitalize">{ResultsPerPage.Fifty}</span>
+        </SelectItem>
+        <SelectItem value={ResultsPerPage.OneHundred.toString()}>
+          <span className="capitalize">{ResultsPerPage.OneHundred}</span>
+        </SelectItem>
+        <SelectItem value={ResultsPerPage.FiveHundred.toString()}>
+          <span className="capitalize">
+            {ResultsPerPage.FiveHundred && "All"}
+          </span>
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+
+
+
+
+
+*/
