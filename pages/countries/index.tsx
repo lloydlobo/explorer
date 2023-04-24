@@ -20,6 +20,7 @@ import { useAppStore } from "@/lib/state/app-store";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import { cn, fetcher } from "@/lib/utils";
+import { Spinner } from "@/components/spinner";
 
 type CountriesPageProps = {
   countries: ICountry[];
@@ -92,7 +93,7 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
 
   // Display a loading spinner while data is being fetched.
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <Spinner />;
   }
 
   // Display an error message if there was an error fetching the data.
@@ -292,7 +293,7 @@ export function PaginatedCollection<T>({
               Next
             </Button>
           </div>
-          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+          <div className="hidden sm:flex sm:flex-1 sm:justify-between sm:items-center">
             <div>
               <p className="text-sm text-muted-foreground">
                 Showing{" "}
@@ -306,7 +307,7 @@ export function PaginatedCollection<T>({
             </div>
             <div>
               <nav
-                className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                className="inline-flex -space-x-px rounded-md shadow-sm isolate"
                 aria-label="Pagination"
               >
                 <Button
@@ -317,7 +318,7 @@ export function PaginatedCollection<T>({
                   className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400! ring-1! ring-inset ring-gray-300! hover:bg-gray-50! focus:z-20 focus:outline-offset-0"
                 >
                   <span className="sr-only">Previous</span>
-                  <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                  <ChevronLeftIcon className="w-5 h-5" aria-hidden="true" />
                 </Button>
                 {pageButtons}
                 <Button
@@ -328,7 +329,7 @@ export function PaginatedCollection<T>({
                   className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400! ring-1! ring-inset ring-gray-300! hover:bg-gray-50! focus:z-20 focus:outline-offset-0"
                 >
                   <span className="sr-only">Next</span>
-                  <ChevronsRightIcon className="h-5 w-5" aria-hidden="true" />
+                  <ChevronsRightIcon className="w-5 h-5" aria-hidden="true" />
                 </Button>
               </nav>
             </div>
@@ -337,7 +338,7 @@ export function PaginatedCollection<T>({
 
         {/* {page.map(renderItem)} */}
         <div className="relative">
-          <ScrollArea className="h-[75vh] w-full min-w-[350px] rounded-md border p-4">
+          <ScrollArea className="p-4 w-full rounded-md border h-[75vh] min-w-[350px]">
             {selectedView === ViewType.Default ||
             selectedView === ViewType.Cards ? (
               <CountryCards cardsData={page} />

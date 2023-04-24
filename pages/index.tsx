@@ -14,6 +14,8 @@ import { GetStaticProps, NextPage } from "next";
 import Image from "next/image";
 import { cache, useEffect, useState } from "react";
 import countriesJSON from "@/lib/data.json";
+import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/spinner";
 
 type HomePageProps = {
   countries: ICountry[];
@@ -71,7 +73,7 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
 
   // Display a loading spinner while data is being fetched.
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <Spinner />;
   }
 
   // Display an error message if there was an error fetching the data.

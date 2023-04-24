@@ -14,6 +14,8 @@ import React from "react";
 import { ButtonLoading } from "@/components/button-loading";
 import { CountryDetail } from "@/components/country/country-detail";
 import { CountryBorders } from "@/components/country/country-borders";
+import { Spinner } from "@/components/spinner";
+import { Heading } from "@/components/ui/typography";
 
 type CountryPageProps = {
   country: ICountry;
@@ -45,7 +47,9 @@ const CountryPage: NextPage<CountryPageProps> = ({
   };
   const displayedCountry = (cachedCountry as ICountry) ?? country;
 
-  if (isLoading) return <ButtonLoading label="Please wait" />;
+  if (isLoading) {
+    return <Spinner />;
+  }
   // Display an error message if there was an error fetching the data.
   if (error instanceof Error) {
     return <div>Error: {error.message}</div>;
@@ -53,18 +57,23 @@ const CountryPage: NextPage<CountryPageProps> = ({
 
   return (
     <Layout title={displayedCountry.name}>
-      <div className="flex flex-col gap-4 py-4">
-        <Button
-          variant={"subtle"}
-          onClick={() => router.back()}
-          className="capitalize w-fit"
-        >
-          go back
-        </Button>
-
-        <h1 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-          {displayedCountry.name}
-        </h1>
+      <div className="flex flex-col gap-8 py-4">
+        <div className="flex justify-between items-center mt-4">
+          <Heading
+            variant="h1"
+            className="my-0"
+            // className="mb-0 text-2xl font-bold tracking-tight text-gray-900 dark:text-white"
+          >
+            {displayedCountry.name}
+          </Heading>
+          <Button
+            variant={"subtle"}
+            onClick={() => router.back()}
+            className="capitalize w-fit"
+          >
+            go back
+          </Button>
+        </div>
 
         {/* HACK: coalescing undefined displayedCountry to country. Is it a ref thing? */}
 

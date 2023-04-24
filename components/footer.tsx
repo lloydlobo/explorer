@@ -1,4 +1,6 @@
 import React from "react";
+import Image from "next/image";
+import Link from "next/link";
 
 export function Footer() {
   const CURRENT_YEAR = new Date().getFullYear();
@@ -6,17 +8,14 @@ export function Footer() {
     <footer className="container">
       <div className="flex flex-col gap-3 justify-between items-center py-10 border-t md:flex-row md:py-0 md:h-24 border-t-slate-199 dark:border-t-slate-700">
         <div className="flex flex-col gap-4 items-center px-8 md:flex-row md:gap-2 md:px-0">
-          <svg
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-6 h-6"
-          >
-            <circle cx={12} cy={12} r={10} />
-          </svg>
+          <Link href="/">
+            <Image
+              width={32 / 1.618}
+              height={32 / 1.618}
+              src={"/assets/icons/favicon-32x32.png"}
+              alt="explorer logo"
+            />
+          </Link>
           <p className="text-sm leading-loose text-center md:text-left text-slate-600 dark:text-slate-400">
             <span>{CURRENT_YEAR}</span> Built by{/* */}{" "}
             <a
