@@ -152,7 +152,7 @@ function FlagGuessingGame(): JSX.Element {
         description: (
           <div className="grid">
             Please come back tomorrow.{" "}
-            <Link className="underline font-bold" href="/pro">
+            <Link className="font-bold underline" href="/pro">
               Get Pro to remove limits.
             </Link>
           </div>
@@ -181,7 +181,7 @@ function FlagGuessingGame(): JSX.Element {
                 ),
               });
             }}
-            className="w-fit px-4"
+            className="px-4 w-fit"
             size={"sm"}
           >
             Clear data
@@ -433,7 +433,7 @@ function FlagGuessingGame(): JSX.Element {
     return (
       <Link
         href={`/countries/${gameState.selectedCountry?.alpha3Code}`}
-        className="underline flex font-bold"
+        className="flex font-bold underline"
       >
         {gameState.selectedCountry?.name}
       </Link>
@@ -447,7 +447,7 @@ function FlagGuessingGame(): JSX.Element {
   const imageUrl = flag || flags?.png || "/assets/placeholders/flag.jpg" || require("../public/assets/placeholders/flag.jpg"); // prettier-ignore
 
   return (
-    <section className="flex flex-col w-[80vw] md:w-[60vw] mx-auto mt-6 gap-8 justify-center">
+    <section className="flex flex-col gap-8 justify-center mx-auto mt-6 w-[80vw] md:w-[60vw]">
       <div className="grid">
         {isGameRunning ? (
           <div
@@ -464,7 +464,7 @@ function FlagGuessingGame(): JSX.Element {
             color={"default"}
             fontWeight={"bold"}
             variant="h1"
-            className="uppercase text-3xl text-center font-bold leading-tight tracking-tighter md:text-5xl lg:text-6xl lg:leading-[1.1] hidden md:block"
+            className="hidden text-3xl font-bold tracking-tighter leading-tight text-center uppercase md:block md:text-5xl lg:text-6xl lg:leading-[1.1]"
           >
             Guess the country
           </Heading>
@@ -472,18 +472,19 @@ function FlagGuessingGame(): JSX.Element {
       </div>
 
       {/* Flag ratio is commonly 3/2 or 2/1 : https://en.wikipedia.org/wiki/List_of_aspect_ratios_of_national_flags  */}
-      <div className="py-2 mx-auto w-[250px] grid">
+      <div className="grid py-2 mx-auto h-auto w-[250px]">
         <AspectRatio ratio={3 / 2}>
+          {/* <div className="hidden absolute top-0 right-0 scale-75 -z-50"> <Image className="object-cover flex justify-center opacity-80! pointer-events-none" src={require("@/lib/dev/2023-04-17-1003-explorer.png")} alt={"architecture"} /> </div> */}
           <Image // fill
-            width={250}
-            height={250}
+            width={90 * 3}
+            height={90 * 2}
             src={imageUrl}
             alt={randomCountry?.name ?? "Flag"}
             className={`${
               isGameRunning ? "blur-0" : "blur-xl dark:blur-2xl"
-            } rounded-md shadow w-[250px] aspect-video object-cover`}
+            } rounded-md shadow w-[250px] h-auto aspect-video object-cover`}
           />
-          <div className="w-full mt-3 grid place-content-center">
+          <div className="grid place-content-center mt-3 w-full">
             {isGameRunning && (
               <div
                 className={`${isGameRunning ? "opacity-100" : "opacity-0"}
@@ -508,7 +509,7 @@ function FlagGuessingGame(): JSX.Element {
                 variant={"subtle"}
               >
                 {!isGameRunning && guessedCountries.length === 0 ? (
-                  <div className="absolute -top-2.5 opacity-90 right-3">
+                  <div className="absolute -top-2.5 right-3 opacity-90">
                     <Indicator />
                   </div>
                 ) : null}
@@ -551,15 +552,15 @@ function FlagGuessingGame(): JSX.Element {
               variant="outline"
               role="combobox"
               aria-expanded={openSearch}
-              className="min-w-[200px] relative justify-between"
+              className="relative justify-between min-w-[200px]"
             >
               {isGameRunning && guessedCountries.length === 0 ? (
-                <div className="absolute -top-2.5 opacity-90 right-3">
+                <div className="absolute -top-2.5 right-3 opacity-90">
                   <Indicator />
                 </div>
               ) : null}
               {selectedOptionSearch || "Select a country…"}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <ChevronsUpDown className="ml-2 w-4 h-4 opacity-50 shrink-0" />
             </Button>
           </PopoverTrigger>
 
@@ -579,7 +580,7 @@ function FlagGuessingGame(): JSX.Element {
               <CommandEmpty>No countries found.</CommandEmpty>
               {gameState.countries ? (
                 <CommandGroup>
-                  <ScrollArea className="h-[200px] w-full min-w-[350px] rounded-md border p-4">
+                  <ScrollArea className="p-4 w-full rounded-md border h-[200px] min-w-[350px]">
                     {gameState.countries.map((country, idxCountry) => (
                       <CommandItem
                         aria-disabled={isCountryAlreadyGuessedSearch(country)}
@@ -637,7 +638,7 @@ function FlagGuessingGame(): JSX.Element {
               >
                 {country ? (
                   <>
-                    <Heading className="leading-none uppercase my-0 py-0 tracking-widest">
+                    <Heading className="py-0 my-0 tracking-widest leading-none uppercase">
                       {country.split("").map((char, i) => (
                         <span
                           key={`char-${i}-${char}-${idxGuessed}-${country.length}`}
@@ -654,7 +655,7 @@ function FlagGuessingGame(): JSX.Element {
                     <Directions gameState={gameState} guessed={country} />
                   </>
                 ) : (
-                  <Skeleton className="min-w-[100px] min-h-[22px] rounded-sm" />
+                  <Skeleton className="rounded-sm min-w-[100px] min-h-[22px]" />
                 )}
               </div>
             );
@@ -734,7 +735,7 @@ export function Directions({ gameState, guessed }: DirectionsProps) {
   }
 
   return (
-    <div className="ms-auto text-xs px-2">
+    <div className="px-2 text-xs ms-auto">
       {gameState.selectedCountry && (
         <div className="flex items-center">
           <span className="font-bold">{distance}</span>

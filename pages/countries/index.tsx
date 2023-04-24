@@ -1,43 +1,28 @@
 import { useQuery } from "@tanstack/react-query";
+import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
 import { GetStaticProps, NextPage } from "next";
-import { ReactNode, useState } from "react";
 import * as z from "zod";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { CountryList } from "@/components/country/country-list";
+import { CountryCard } from "@/components/country/country-card";
+import { CountryTable } from "@/components/country/country-table";
 import Layout from "@/components/layout";
 import Search from "@/components/search";
 import SelectRegion from "@/components/select-region";
 import { SelectView } from "@/components/select-view";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { API_BASE_URL } from "@/lib/constants";
 import { Region, ResultsPerPage, ViewType } from "@/lib/enums";
 import { filterCountryRegion, getViewType } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/ui/use-toast";
+import { usePagination } from "@/lib/hooks/use-pagination";
 import { useAppStore } from "@/lib/state/app-store";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import { cn, fetcher } from "@/lib/utils";
-import produce from "immer";
-/* import { SelectResultsPerPage } from "./SelectResultsPerPageProps"; */
-import { usePagination } from "@/lib/hooks/use-pagination";
-import { CountryCard } from "@/components/country/country-card";
-import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { CountryTable } from "@/components/country/country-table";
 
 type CountriesPageProps = {
   countries: ICountry[];
-};
-type PaginateState = {
-  // resultsPerPage: number;
-  currentPage: number;
-  totalPages: number;
 };
 
 /**
@@ -64,10 +49,7 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
 
   const handleRegionSelect = (value: Region) => {
     setSelectedRegion(value);
-    toast({
-      title: `Filtering region to ${value}`,
-      // description: `Reverting to page ${paginateState.currentPage}`,
-    });
+    toast({ title: `Filtering region to ${value}` });
   };
 
   const handleSelectView = (value: string) => {
@@ -101,8 +83,8 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   });
 
   const styleHeader = cn(`${isOpenBanner ? "top-20 md:top-16" : "top-8"}
-    sticky py-4 mb-2 z-30 w-full bg-white bg-opacity-90 rounded-b-md backdrop-blur-2xl
-    border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900/80`);
+    sticky py-4 mb-2 z-30 w-full bg-white! bg-opacity-90 rounded-b-md backdrop-blur-2xl
+    border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900/80!`);
 
   const styleSearchBar = cn(
     "relative z-10 flex flex-1 flex-wrap items-start justify-between"
@@ -156,10 +138,45 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
 };
 
 // Static Site Generation feature for Next.js.
+// This function gets called at build time on server-side.
+// It may be called again, on a serverless function, if
+// revalidation is enabled and a new request comes in
 export const getStaticProps: GetStaticProps = async () => {
   const countries = await fetcher({ url: `${API_BASE_URL}/all` });
-  return { props: { countries } };
+  return {
+    props: {
+      countries,
+    },
+    // ISR: Incremental Static Regeneration
+    // Next.js will attempt to re-generate the page:
+    // - When a request comes in
+    // - At most once every 10 seconds
+    revalidate: 10, // In seconds
+  };
 };
+
+// NOTE: getStaticPaths is only allowed for dynamic SSG pages and was found on '/countries'.
+// Read more: https://nextjs.org/docs/messages/non-dynamic-getstaticpaths-usage
+//
+// // This function gets called at build time on server-side.
+// // It may be called again, on a serverless function, if
+// // the path has not been generated.
+// export async function getStaticPaths() {
+//   const countries: ICountry[] = await fetcher({ url: `${API_BASE_URL}/all` });
+
+//   // const res = await fetch('https://.../posts')
+//   // const posts = await res.json()
+
+//   // Get the paths we want to pre-render based on posts
+//   const paths = countries.map((country: ICountry) => ({
+//     params: { id: country.alpha3Code },
+//   }));
+
+//   // We'll pre-render only these paths at build time.
+//   // { fallback: 'blocking' } will server-render pages
+//   // on-demand if the path doesn't exist.
+//   return { paths, fallback: "blocking" };
+// }
 
 export default CountriesPage;
 

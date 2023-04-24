@@ -3,8 +3,13 @@ import React from "react";
 import PropTypes from "prop-types";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
-export function CountryTable({ headerData, keysToRender, tableData }:TableProps) {
+export function CountryTable({
+  headerData,
+  keysToRender,
+  tableData,
+}: TableProps) {
   // Get the selected country and region from the global store.
   const {
     // selectedCountry,
@@ -16,9 +21,14 @@ export function CountryTable({ headerData, keysToRender, tableData }:TableProps)
   // const handleCountryClick = (alpha3Code: string) => {
   //   setSelectedCountry(alpha3Code);
   // };
-  return <Table headerData={headerData} keysToRender={keysToRender} tableData={tableData}/>;
+  return (
+    <Table
+      headerData={headerData}
+      keysToRender={keysToRender}
+      tableData={tableData}
+    />
+  );
 }
-
 
 interface TableProps {
   headerData: string[];
@@ -37,7 +47,7 @@ function Table({ headerData, keysToRender, tableData }: TableProps) {
           scope="row"
           className="py-4 px-6 font-medium text-gray-900 whitespace-nowrap dark:text-white"
         >
-          {row[key]}
+          <Link href={`/countries/${row.alpha3Code}`}>{row[key]}</Link>
         </th>
       ) : (
         <td key={key} className="py-4 px-6">

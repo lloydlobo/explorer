@@ -1,7 +1,6 @@
 import { AccordianGuesses } from "@/components/accordion-guesses";
 import {
   FlagGuessingGame,
-  GameState,
   gameStateAtom,
 } from "@/components/country-guessing-game";
 import Layout from "@/components/layout";
@@ -14,6 +13,7 @@ import { useAtom } from "jotai";
 import { GetStaticProps, NextPage } from "next";
 import Image from "next/image";
 import { cache, useEffect, useState } from "react";
+import countriesJSON from "@/lib/data.json";
 
 type HomePageProps = {
   countries: ICountry[];
@@ -28,7 +28,7 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
     error,
   } = useQuery<ICountry[]>({
     queryKey: ["countries"],
-    queryFn: () => fetcher({ url: `${API_BASE_URL}/all` }),
+    queryFn: async () => await fetcher({ url: `${API_BASE_URL}/all` }),
     initialData: countries, // use static data from staticProps if server error 500.
   });
 
@@ -37,30 +37,52 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
 
   // Is this useEffect necessary?
   useEffect(() => {
-    setGameState(
-      produce((draft) => {
-        draft.countries = cachedCountries;
-        draft.selectedCountry = cachedCountries[random];
-      })
-    );
+    try {
+      if (cachedCountries) {
+        setGameState(
+          produce((draft) => {
+            draft.countries = cachedCountries;
+            draft.selectedCountry = cachedCountries[random];
+          })
+        );
+      }
+      // else if (countries) {
+      //   setGameState(
+      //     produce((draft) => {
+      //       draft.countries = countries;
+      //       draft.selectedCountry = countries[random];
+      //     })
+      //   );
+      // }
+      else {
+        setGameState(
+          produce((draft) => {
+            draft.countries = countriesJSON;
+            draft.selectedCountry = countriesJSON[random];
+          })
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      // TODO: Maybe invalidate useQuery?
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cachedCountries, setGameState]);
 
+  // Display a loading spinner while data is being fetched.
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // Display an error message if there was an error fetching the data.
+  if (error instanceof Error) {
+    return <div>Error: {error.message}</div>;
+  }
+
   return (
-    <Layout
-      title="Home | Flag Guessring Game"
-      description="Flag guessing game."
-    >
+    <Layout title="Home | Flag Guessing Game" description="Flag guessing game.">
       <div className="relative">
         <FlagGuessingGame />
-
-        <div className="absolute hidden scale-75 -z-50 top-0 right-0">
-          <Image
-            className="object-cover flex justify-center opacity-80! pointer-events-none"
-            src={require("@/lib/dev/2023-04-17-1003-explorer.png")}
-            alt={"architecture"}
-          />
-        </div>
       </div>
     </Layout>
   );
@@ -69,7 +91,16 @@ const HomePage: NextPage<HomePageProps> = ({ countries }: HomePageProps) => {
 // Static Site Generation feature for Next.js.
 export const getStaticProps: GetStaticProps = async () => {
   const countries = await fetcher({ url: `${API_BASE_URL}/all` });
-  return { props: { countries } };
+  return {
+    props: {
+      countries,
+    },
+    // ISR: Incremental Static Regeneration
+    // Next.js will attempt to re-generate the page:
+    // - When a request comes in
+    // - At most once every 10 seconds
+    revalidate: 10, // In seconds
+  };
 };
 
 export default HomePage;

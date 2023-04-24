@@ -29,7 +29,7 @@ export default function Navbar() {
           <div
             aria-label="Explorer"
             title="Explorer"
-            className="text-base font-black relative tracking-wide uppercase!"
+            className="text-base font-bold relative tracking-wide uppercase!"
           >
             <span className="text-green-400!">e</span>
             <span className="text-green-400!">x</span>
