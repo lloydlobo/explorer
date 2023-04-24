@@ -1,3 +1,5 @@
+// "use client";
+
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
 import { GetStaticProps, NextPage } from "next";

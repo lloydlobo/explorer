@@ -1,14 +1,20 @@
 /* eslint-disable react/jsx-no-undef */
+
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { useCountrySearch } from "@/lib/hooks/use-country-search";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect } from "react";
 import { useSearchCount } from "@/lib/hooks/use-search-count";
 import { SearchResult } from "@/lib/types/types-fuse-search-result";
+import React from "react";
+import { useRouter } from "next/router";
 
 type SearchProps = {
   setSearchCount?: React.Dispatch<React.SetStateAction<number>>;
@@ -43,21 +49,32 @@ type SearchProps = {
  */
 export default function Search({ setSearchCount }: SearchProps) {
   const { setSelectedCountry } = useCountryStore();
+  const router = useRouter();
 
   const { searchResults, isLoading, error, query, setQuery } =
     useCountrySearch();
 
-  useSearchCount({ searchResults: searchResults ?? []as SearchResult[], query, setSearchCount });
+  useSearchCount({
+    searchResults: searchResults ?? ([] as SearchResult[]), // TODO: can set all cached countries instead of empty array.
+    query,
+    setSearchCount,
+  });
 
-  function handleCountryClick(alpha3Code: ICountry["alpha3Code"]) {
-    setSelectedCountry(alpha3Code);
-  }
+  // function handleCountryClick(alpha3Code: ICountry["alpha3Code"]) { setSelectedCountry(alpha3Code); }
+  // function handleInputOnChange(e: React.ChangeEvent<HTMLInputElement>) { e.preventDefault(); const updatedQuery: string = e.currentTarget.value; setQuery(updatedQuery); }
+  // const [inputquery, setinputQuery] = React.useState("");
+  const [label, setLabel] = React.useState("");
+  const [open, setOpen] = React.useState(false);
 
-  function handleInputOnChange(e: React.ChangeEvent<HTMLInputElement>) {
-    e.preventDefault();
-    const updatedQuery: string = e.currentTarget.value;
-    setQuery(updatedQuery);
-  }
+  React.useEffect(() => {
+    if (query.length > 0) {
+      setOpen(true);
+    }
+
+    return () => {
+      setOpen(false);
+    };
+  }, [setOpen, query]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -72,49 +89,51 @@ export default function Search({ setSearchCount }: SearchProps) {
       <label htmlFor="search" className="sr-only">
         Search countries:
       </label>
-      <Input
-        type="search"
-        placeholder="Search a country…"
-        autoFocus={true}
-        onChange={(e) => handleInputOnChange(e)}
-        className={cn(
-          "min-w-[60vw] md:min-w-[45vw]" +
-            "block! p-2.5 py-2 pl-10 w-full! text-sm text-gray-900 bg-white rounded-lg border border-gray-300 dark:placeholder-gray-400 dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500"
-        )}
-      />
-      {searchResults !== null &&
-      searchResults.length > 0 &&
-      query.length > 0 ? (
-        <ScrollArea className="p-4 rounded-md border h-[200px] max-w-fit min-w-[350px]">
-          <div className="grid">
-            {searchResults.map((result, idxResult) => {
-              const country = result.item;
-              const score = result.score ?? -1;
-              if (score * 100 <= 4 && score * 100 >= 0) {
-                return (
-                  <Link
-                    key={`country-search-fuse-${country.alpha3Code}-${idxResult}`}
-                    href={`/countries/${country.alpha3Code}`}
-                    data-code={country.alpha3Code}
-                    onClick={(e) =>
-                      handleCountryClick(
-                        e.currentTarget.dataset.code ?? country.alpha3Code
-                      )
-                    }
-                  >
-                    {country.name}
-                    <div aria-label="search score rank" className="sr-only">
-                      {(score * 100).toFixed(0)}
-                    </div>
-                  </Link>
-                );
-              } else {
-                return null;
-              }
-            })}
-          </div>
-        </ScrollArea>
-      ) : null}
+
+      <Command>
+        <CommandInput
+          value={label}
+          onValueChange={(value: string) => {
+            setQuery(value);
+            setLabel(value); // label is aesthetic confirmation.
+          }}
+          placeholder="Search a country…"
+          autoFocus={true}
+        />
+        <CommandList hidden={!open} inputMode="search">
+          <CommandEmpty>No label found.</CommandEmpty>
+          <CommandGroup>
+            {searchResults !== null &&
+            searchResults.length > 0 &&
+            query.length > 0
+              ? searchResults?.map((result, idxResult) => {
+                  const country = result.item;
+                  const score = result.score ?? -1;
+                  if (score * 100 <= 4 && score * 100 >= 0) {
+                    return (
+                      <CommandItem
+                        key={`command-query-${country.alpha3Code}-${query}-${idxResult}`}
+                        onSelect={(value) => {
+                          let countryName =
+                            value.charAt(0).toUpperCase() +
+                            value.slice(1, value.length);
+                          setLabel(countryName); // label is aesthetic confirmation.
+                          setOpen(false);
+                          setSelectedCountry(country.alpha3Code);
+                          router.push(`/countries/${country.alpha3Code}`);
+                        }}
+                      >
+                        {country.name}
+                      </CommandItem>
+                    );
+                  } else {
+                    return null;
+                  }
+                })
+              : null}
+          </CommandGroup>
+        </CommandList>
+      </Command>
     </form>
   );
 }
@@ -338,3 +357,48 @@ export default function Search({ setSearchCount }: SearchProps) {
 //     </form>
 //   );
 // }
+//
+//
+// {/* <Input */}
+// {/*   type="search" */}
+// {/*   placeholder="Search a country…" */}
+// {/*   autoFocus={true} */}
+// {/*   onChange={(e) => handleInputOnChange(e)} */}
+// {/*   className={cn( */}
+// {/*     "min-w-[60vw] md:min-w-[45vw]" + */}
+// {/*       "block! p-2.5 py-2 pl-10 w-full! text-sm text-gray-900 bg-white rounded-lg border border-gray-300 dark:placeholder-gray-400 dark:text-white dark:bg-gray-700 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500" */}
+// {/*   )} */}
+// {/* /> */}
+// {/* {searchResults !== null && */}
+// {/* searchResults.length > 0 && */}
+// {/* query.length > 0 ? ( */}
+// {/*   <ScrollArea className="p-4 rounded-md border h-[200px] max-w-fit min-w-[350px]"> */}
+// {/*     <div className="grid"> */}
+// {/*       {searchResults.map((result, idxResult) => { */}
+// {/*         const country = result.item; */}
+// {/*         const score = result.score ?? -1; */}
+// {/*         if (score * 100 <= 4 && score * 100 >= 0) { */}
+// {/*           return ( */}
+// {/*             <Link */}
+// {/*               key={`country-search-fuse-${country.alpha3Code}-${idxResult}`} */}
+// {/*               href={`/countries/${country.alpha3Code}`} */}
+// {/*               data-code={country.alpha3Code} */}
+// {/*               onClick={(e) => */}
+// {/*                 handleCountryClick( */}
+// {/*                   e.currentTarget.dataset.code ?? country.alpha3Code */}
+// {/*                 ) */}
+// {/*               } */}
+// {/*             > */}
+// {/*               {country.name} */}
+// {/*               <div aria-label="search score rank" className="sr-only"> */}
+// {/*                 {(score * 100).toFixed(0)} */}
+// {/*               </div> */}
+// {/*             </Link> */}
+// {/*           ); */}
+// {/*         } else { */}
+// {/*           return null; */}
+// {/*         } */}
+// {/*       })} */}
+// {/*     </div> */}
+// {/*   </ScrollArea> */}
+// {/* ) : null} */}

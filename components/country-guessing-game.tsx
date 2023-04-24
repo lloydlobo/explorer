@@ -24,13 +24,7 @@ import { cn } from "@/lib/utils";
 import { AspectRatio } from "@radix-ui/react-aspect-ratio";
 import produce from "immer";
 import { atom, useAtom } from "jotai";
-import {
-  Check,
-  ChevronsUpDown,
-  ExternalLinkIcon,
-  Loader2,
-  ViewIcon,
-} from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
@@ -112,7 +106,7 @@ function FlagGuessingGame(): JSX.Element {
 
   /* REGION_START: ComboBox Search... */
 
-  const searchRef = useRef<HTMLButtonElement | null>(null);
+  const searchRef = useRef<NonNullable<HTMLButtonElement> | null>(null);
   const [openSearch, setOpenSearch] = useState(false);
   const [selectedOptionSearch, setSelectedOptionSearch] = useState("");
   const [valueSearch, setValueSearch] = useState("");
@@ -121,7 +115,7 @@ function FlagGuessingGame(): JSX.Element {
 
   const startGameRef = useRef<HTMLButtonElement | null>(null);
 
-  /* REGION_START: Contdown timer.. */
+  /* REGION_START: Countdown timer.. */
   const [isGamePaused, setIsGamePaused] = useState(false);
   const [isGameRunning, setIsGameRunning] = useState(false);
 
@@ -258,11 +252,9 @@ function FlagGuessingGame(): JSX.Element {
           draft.guessedCountries = guessedCountrySet;
         })
       );
-      // const timer = 5; // 5 seconds.
       toast({
         title: "You won!",
         description: <LinkCountry gameState={gameState} />,
-        // duration: timer * 1000,
       });
       resetGame();
     } else if (triesRemaining === 0) {
@@ -279,6 +271,7 @@ function FlagGuessingGame(): JSX.Element {
       );
       resetGame();
     } else {
+      // Play next try.
       setGameState(
         produce(gameState, (draft) => {
           draft.triesRemaining = triesRemaining;
@@ -341,7 +334,6 @@ function FlagGuessingGame(): JSX.Element {
         JSON.stringify(gameDataArray)
       );
 
-      // setRemainingTime(TIME_LIMIT);
       selectRandomCountry();
 
       if (startGameRef.current) {
@@ -491,11 +483,7 @@ function FlagGuessingGame(): JSX.Element {
                 ${isGamePaused ? "blur-2xl" : "blur-0"}
                  md:hidden block font-bold text-lg`}
               >
-                <CountdownTimer
-                  // gameState={gameState}
-                  // initialTime={gameState.remainingTime}
-                  onTimeout={handleTimeout}
-                />
+                <CountdownTimer onTimeout={handleTimeout} />
               </div>
             )}
             <div className="absolute place-self-center h-full">
@@ -520,18 +508,7 @@ function FlagGuessingGame(): JSX.Element {
         </AspectRatio>
       </div>
 
-      <div
-        onClick={(e) => {
-          if (!isGameRunning && startGameRef.current) {
-            startGameRef.current.focus();
-            toast({
-              title: "You must start the game first!",
-            });
-          }
-        }}
-        className="grid gap-y-2 relative rounded-lg! min-w-[300px] outline! outline-slate-200! dark:outline-slate-700! overflow-clip!"
-      >
-        {/*
+      {/*
           A CommandCombobox component that allows the user to search and select a country.
           @remarks
           This component uses the useQueryAllCountries hook to fetch the list of countries.
@@ -539,6 +516,16 @@ function FlagGuessingGame(): JSX.Element {
           The user can search for a country by typing in the input box and select a country by clicking on it.
           @returns The CommandCombobox component.
         */}
+      <div
+        className="grid relative gap-y-2 min-w-[300px]"
+        onClick={(e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+          e.preventDefault();
+          if (!isGameRunning && startGameRef.current) {
+            startGameRef.current.focus();
+            toast({ title: "You must start the game first!" });
+          }
+        }}
+      >
         <Popover open={openSearch} onOpenChange={setOpenSearch}>
           <PopoverTrigger
             disabled={!isGameRunning}
@@ -565,11 +552,10 @@ function FlagGuessingGame(): JSX.Element {
           </PopoverTrigger>
 
           <PopoverContent className="min-w-[200px] w-full max-h-[350px]! p-0">
-            <Command>
+            <Command draggable={true}>
               <CommandInput
                 autoFocus={true}
                 placeholder="Search a country…"
-                // onBlur={(e) => setValueSearch("")}
                 value={valueSearch}
                 onValueChange={(search) => {
                   setOpenSearch(true);
@@ -583,13 +569,13 @@ function FlagGuessingGame(): JSX.Element {
                   <ScrollArea className="p-4 w-full rounded-md border h-[200px] min-w-[350px]">
                     {gameState.countries.map((country, idxCountry) => (
                       <CommandItem
+                        className="disabled:opacity-70"
                         aria-disabled={isCountryAlreadyGuessedSearch(country)}
                         disabled={isCountryAlreadyGuessedSearch(country)}
                         key={`${country.alpha3Code}-${idxCountry}-countryItem`}
                         onSelect={(value) =>
                           handleOptionSelectSearch(value, country)
                         }
-                        className="disabled:opacity-70"
                       >
                         <Check
                           className={cn(
@@ -619,49 +605,47 @@ function FlagGuessingGame(): JSX.Element {
         </Button>
         <Button
           onClick={selectRandomCountry}
-          className="hidden"
+          // className="hidden"
           variant="outline"
         >
           Skip
         </Button>
       </div>
 
-      <>
-        <div className="grid gap-y-2 md:gap-y-3">
-          {Array.from(Array(gameState.maxTries).keys()).map((idxGuessed) => {
-            const country = guessedCountries[idxGuessed];
+      <div className="grid gap-y-2 md:gap-y-3">
+        {Array.from(Array(gameState.maxTries).keys()).map((idxGuessed) => {
+          const country = guessedCountries[idxGuessed];
 
-            return (
-              <div
-                key={`guessed-${country}-${idxGuessed}-${gameState.selectedCountry?.name}`}
-                className="grid grid-flow-col-dense items-baseline"
-              >
-                {country ? (
-                  <>
-                    <Heading className="py-0 my-0 tracking-widest leading-none uppercase">
-                      {country.split("").map((char, i) => (
-                        <span
-                          key={`char-${i}-${char}-${idxGuessed}-${country.length}`}
-                          className={
-                            gameState.selectedCountry?.name.includes(char)
-                              ? "text-green-500"
-                              : ""
-                          }
-                        >
-                          {char}
-                        </span>
-                      ))}
-                    </Heading>
-                    <Directions gameState={gameState} guessed={country} />
-                  </>
-                ) : (
-                  <Skeleton className="rounded-sm min-w-[100px] min-h-[22px]" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </>
+          return (
+            <div
+              key={`guessed-${country}-${idxGuessed}-${gameState.selectedCountry?.name}`}
+              className="grid grid-flow-col-dense items-baseline"
+            >
+              {country ? (
+                <>
+                  <Heading className="py-0 my-0 tracking-widest leading-none uppercase">
+                    {country.split("").map((char, i) => (
+                      <span
+                        key={`char-${i}-${char}-${idxGuessed}-${country.length}`}
+                        className={
+                          gameState.selectedCountry?.name.includes(char)
+                            ? "text-green-500"
+                            : ""
+                        }
+                      >
+                        {char}
+                      </span>
+                    ))}
+                  </Heading>
+                  <Directions gameState={gameState} guessed={country} />
+                </>
+              ) : (
+                <Skeleton className="rounded-sm min-w-[100px] min-h-[22px]" />
+              )}
+            </div>
+          );
+        })}
+      </div>
 
       {/* debug only*/}
       <div className="relative opacity-0 hover:opacity-40">
@@ -747,40 +731,34 @@ export function Directions({ gameState, guessed }: DirectionsProps) {
 }
 
 type CountdownTimerProps = {
-  // initialTime: number;
   onTimeout: () => void;
 };
 
 function CountdownTimer({ onTimeout }: CountdownTimerProps) {
-  // const [time, setTime] = useState(initialTime);
   const [gameState, setGameState] = useAtom(gameStateAtom);
+  const { remainingTime, graceTimeAtTry, gameDuration, guessedCountries } =
+    gameState;
+
   const [mounted, setMounted] = useState(true);
   const [guessCount, setGuessCount] = useState(
-    Array.from(gameState.guessedCountries).length
+    Array.from(guessedCountries).length
   );
 
-  // const guessedCountries = gameState.guessedCountries;
-  // const counter = Array.from(Array(MAX_TRIES).keys()).length;
-
-  // const initialTime = counter * COUNTDOWN_INTERVAL;
-
   useEffect(() => {
-    const updatedGuessCount = Array.from(gameState.guessedCountries).length;
+    const updatedGuessCount = Array.from(guessedCountries).length;
     if (
       guessCount !== updatedGuessCount &&
-      gameState.remainingTime + gameState.graceTimeAtTry <=
-        gameState.gameDuration
+      remainingTime + graceTimeAtTry <= gameDuration
     ) {
       setGameState(
         produce((draft) => {
-          draft.remainingTime =
-            gameState.remainingTime + gameState.graceTimeAtTry;
+          draft.remainingTime = remainingTime + graceTimeAtTry;
         })
       );
     }
     setGuessCount(updatedGuessCount);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.guessedCountries]);
+  }, [guessedCountries]);
 
   useEffect(() => {
     if (mounted) {
@@ -788,7 +766,7 @@ function CountdownTimer({ onTimeout }: CountdownTimerProps) {
         // setGameState((prevTime: number) => prevTime - 1);
         setGameState(
           produce((draft) => {
-            draft.remainingTime = gameState.remainingTime - 1;
+            draft.remainingTime = remainingTime - 1;
           })
         );
       }, 1000);
@@ -797,15 +775,15 @@ function CountdownTimer({ onTimeout }: CountdownTimerProps) {
       };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, gameState.remainingTime]);
+  }, [mounted, remainingTime]);
 
   useEffect(() => {
-    if (gameState.remainingTime <= 0 && mounted) {
+    if (remainingTime <= 0 && mounted) {
       setMounted(false);
       onTimeout();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.remainingTime]);
+  }, [remainingTime, mounted]);
 
   const formatTime = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -828,8 +806,8 @@ function CountdownTimer({ onTimeout }: CountdownTimerProps) {
   };
 
   return (
-    <span className={`${getTimeAwareColor(gameState.remainingTime)}`}>
-      {formatTime(gameState.remainingTime)}
+    <span className={getTimeAwareColor(remainingTime)}>
+      {formatTime(remainingTime)}
     </span>
   );
 }
