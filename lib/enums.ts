@@ -20,6 +20,16 @@ export enum Region {
   Oceania = "oceania",
 }
 
+export enum ResultsPerPage {
+  None = 0,
+  Ten = 10,
+  Twenty = 20,
+  Fifty = 50,
+  Hundred = 100,
+  OneHundred = 100,
+  FiveHundred = 500,
+}
+
 // Used with tanstack query.
 export enum QueryKey {
   Countries = "countries",
