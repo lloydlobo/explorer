@@ -32,10 +32,14 @@ export default function SelectRegion({
       // HACK: is it valid to cast select prop as Region here?
       onValueChange={(value) => handleRegionSelect(value as Region)}
     >
-      <SelectTrigger title="Filter by region" className="w-[180px]">
+      <SelectTrigger
+        title="Filter by region"
+        id="selectTrigger"
+        className="capitalize w-[180px]"
+      >
         <SelectValue placeholder="Filter by region" />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="[&>*]:capitalize">
         <SelectItem value={Region.All}>{Region.All}</SelectItem>
         <SelectItem value={Region.Africa}> {Region.Africa}</SelectItem>
         <SelectItem value={Region.Americas}>{Region.Americas}</SelectItem>
