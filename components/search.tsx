@@ -1,8 +1,6 @@
 /* eslint-disable react/jsx-no-undef */
 
-import React from "react";
-import { useRouter } from "next/router";
-
+import { Spinner } from "@/components/spinner";
 import {
   Command,
   CommandEmpty,
@@ -12,12 +10,12 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useCountrySearch } from "@/lib/hooks/use-country-search";
-import { useCountryStore } from "@/lib/state/country-store";
 import { useSearchCount } from "@/lib/hooks/use-search-count";
-import { SearchResult } from "@/lib/types/types-fuse-search-result";
-import { Spinner } from "@/components/spinner";
+import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
-import produce from "immer";
+import { SearchResult } from "@/lib/types/types-fuse-search-result";
+import { useRouter } from "next/router";
+import React from "react";
 
 type SearchProps = {
   setSearchCount?: React.Dispatch<React.SetStateAction<number>>;
@@ -56,12 +54,7 @@ export default function Search({ setSearchCount }: SearchProps) {
   const [label, setLabel] = React.useState<NonNullable<string>>("");
   const [isOpen, setIsOpen] = React.useState(false);
 
-  const {
-    setSelectedCountry,
-    shouldAutoFilterUiOnSearch,
-    searchedCountries,
-    setSearchedCountries,
-  } = useCountryStore();
+  const { setSelectedCountry, setSearchedCountries } = useCountryStore();
   const { searchResults, isLoading, error, query, setQuery } =
     useCountrySearch();
 
@@ -72,11 +65,10 @@ export default function Search({ setSearchCount }: SearchProps) {
   });
 
   React.useEffect(() => {
+    // we reset label when search input is blurred of not in focus, to bypass this useEffect.
+    // And so when input is back in focus, it sets label to the query value.
     if (label.length > 0) {
-      // keep dropdown open while label is present.
-      // we reset label when search input is blurred of not in focus, to bypass this useEffect.
-      // And so when input is back in focus, it sets label to the query value.
-      setIsOpen(true);
+      setIsOpen(true); // keep dropdown open while label is present.
     }
     return () => {
       setIsOpen(false);
@@ -84,7 +76,7 @@ export default function Search({ setSearchCount }: SearchProps) {
         setSearchedCountries([]);
       }
     };
-  }, [setIsOpen, label.length, query, setQuery, setSearchedCountries]);
+  }, [setIsOpen, label.length, query.length, setQuery, setSearchedCountries]);
 
   function handleInputOnChange(value: string) {
     setQuery(value);
@@ -117,13 +109,14 @@ export default function Search({ setSearchCount }: SearchProps) {
           placeholder={query.length > 0 ? query : "Search a country…"}
           autoFocus={true}
           role="search"
-          onBlur={(e) => {
-            setIsOpen(false);
-            setLabel("");
-          }}
-          onFocus={(e) => {
-            setLabel(query);
-          }}
+          // FIXME: Clicking on CommandGroup dropdown, triggers this and doesn't navigate to the page.
+          // onBlur={(e) => {
+          //   setIsOpen(false);
+          //   setLabel("");
+          // }}
+          // onFocus={(e) => {
+          //   setLabel(query);
+          // }}
         />
         <CommandList
           hidden={!isOpen}
@@ -144,6 +137,11 @@ export default function Search({ setSearchCount }: SearchProps) {
                     return (
                       <CommandItem
                         key={`command-query-${country.alpha3Code}-${query}-${idxResult}`}
+                        // onClick={(e) => {
+                        //   setIsOpen(false);
+                        //   setSelectedCountry(country.alpha3Code);
+                        //   router.push(`/countries/${country.alpha3Code}`);
+                        // }}
                         onSelect={(value) => {
                           const countryName: ICountry["name"] =
                             value.charAt(0).toUpperCase() +
