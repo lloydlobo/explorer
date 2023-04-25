@@ -40,7 +40,10 @@ export default function SelectRegion({
         <SelectValue placeholder="Filter by region" />
       </SelectTrigger>
       <SelectContent className="[&>*]:capitalize">
-        <SelectItem value={Region.All}>{Region.All}</SelectItem>
+        <SelectItem value={Region.All}>
+          {Region.All}
+          {" Countries"}
+        </SelectItem>
         <SelectItem value={Region.Africa}> {Region.Africa}</SelectItem>
         <SelectItem value={Region.Americas}>{Region.Americas}</SelectItem>
         <SelectItem value={Region.Asia}> {Region.Asia}</SelectItem>

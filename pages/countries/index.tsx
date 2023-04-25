@@ -135,12 +135,14 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
       <header className={styleHeader}>
         <div className={styleSearchBar}>
           <Search />
-          <SwitchAutoUpdateResultView
-            label={`Auto update results`}
-            isChecked={shouldAutoFilterUiOnSearch}
-            setIsChecked={setShouldAutoFilterUiOnSearch}
-            id={"inputAutoUpdateSearchUI"}
-          />
+          <div className="mt-2">
+            <SwitchAutoUpdateResultView
+              label={`Auto update results`}
+              isChecked={shouldAutoFilterUiOnSearch}
+              setIsChecked={setShouldAutoFilterUiOnSearch}
+              id={"inputAutoUpdateSearchUI"}
+            />
+          </div>
           <SelectRegion
             selectedRegion={selectedRegion}
             handleRegionSelect={handleRegionSelect}
@@ -496,6 +498,7 @@ export function SwitchAutoUpdateResultView({
   return (
     <div className="flex items-center space-x-2">
       <Switch
+        className="scale-75"
         checked={isChecked}
         onCheckedChange={(e: boolean) => {
           setIsChecked(z.boolean().parse(e));
@@ -503,7 +506,7 @@ export function SwitchAutoUpdateResultView({
         id={id}
         {...props}
       />
-      <Label htmlFor={id}>{label}</Label>
+      <Label className="text-xs text-muted-foreground"  htmlFor={id}>{label}</Label>
     </div>
   );
 }
