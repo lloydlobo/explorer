@@ -117,6 +117,12 @@ export const fetchBordersWithCountries = async (
     .filter(Boolean) as ICountry[];
 };
 
+// This function gets called at build time on server-side.
+// It may be called again, on a serverless function, if
+// the path has not been generated.
+//
+// NOTE: getStaticPaths is only allowed for dynamic SSG pages.
+// Read more: https://nextjs.org/docs/messages/non-dynamic-getstaticpaths-usage
 export const getStaticPaths: GetStaticPaths = async () => {
   const res = await fetch(`${API_BASE_URL}/all`);
   const countries: ICountry[] = await res.json();
@@ -125,12 +131,17 @@ export const getStaticPaths: GetStaticPaths = async () => {
     params: { code: country.alpha3Code },
   }));
 
-  return {
-    paths,
-    fallback: false,
-  };
+  // We'll pre-render only these paths at build time.
+  // { fallback: 'blocking' } will server-render pages
+  // on-demand if the path doesn't exist.
+  return { paths, fallback: "blocking" };
+  // return { paths, fallback: false, };
 };
 
+// Static Site Generation feature for Next.js.
+// This function gets called at build time on server-side.
+// It may be called again, on a serverless function, if
+// revalidation is enabled and a new request comes in
 export const getStaticProps: GetStaticProps = async ({ params }) => {
   const code = params?.code as string;
 
@@ -147,6 +158,9 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
       country,
       borderCountries,
     },
+    // ISR: Incremental Static Regeneration Next.js will attempt to re-generate the page:
+    // - When a request comes in - At most once every 10 seconds
+    revalidate: 10, // In seconds
   };
 };
 
@@ -175,15 +189,3 @@ export default CountryPage;
 //     },
 //   };
 // };
-
-// (
-//   const countryMap: TBorderCountryLookup = {};
-//   countries.forEach((country) => { countryMap[country.alpha3Code] = country; });
-//   const countryMap = countries.reduce((map: TBorderCountryLookup, country) => {
-//     map[country.alpha3Code] = country;
-//     return map;
-//   }, {});
-//   const countryMap = countries.reduce(
-//     (map: TBorderCountryLookup, country) => ( (map[country.alpha3Code] = country), map), {}
-//   );
-// )

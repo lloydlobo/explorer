@@ -54,7 +54,7 @@ export default function Search({ setSearchCount }: SearchProps) {
   const router = useRouter();
 
   const [label, setLabel] = React.useState<NonNullable<string>>("");
-  const [open, setOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(false);
 
   const {
     setSelectedCountry,
@@ -72,16 +72,19 @@ export default function Search({ setSearchCount }: SearchProps) {
   });
 
   React.useEffect(() => {
-    if (query.length > 0) {
-      setOpen(true);
+    if (label.length > 0) {
+      // keep dropdown open while label is present.
+      // we reset label when search input is blurred of not in focus, to bypass this useEffect.
+      // And so when input is back in focus, it sets label to the query value.
+      setIsOpen(true);
     }
     return () => {
-      setOpen(false);
+      setIsOpen(false);
       if (query.length === 0) {
         setSearchedCountries([]);
       }
     };
-  }, [setOpen, query, setQuery, setSearchedCountries]);
+  }, [setIsOpen, label.length, query, setQuery, setSearchedCountries]);
 
   function handleInputOnChange(value: string) {
     setQuery(value);
@@ -111,10 +114,22 @@ export default function Search({ setSearchCount }: SearchProps) {
         <CommandInput
           value={label}
           onValueChange={(search) => handleInputOnChange(search)}
-          placeholder="Search a country…"
+          placeholder={query.length > 0 ? query : "Search a country…"}
           autoFocus={true}
+          role="search"
+          onBlur={(e) => {
+            setIsOpen(false);
+            setLabel("");
+          }}
+          onFocus={(e) => {
+            setLabel(query);
+          }}
         />
-        <CommandList hidden={!open} inputMode="search">
+        <CommandList
+          hidden={!isOpen}
+          inputMode="search"
+          className="absolute bg-background/75 backdrop-blur-md top-12 w-[27ch]"
+        >
           <CommandEmpty>No label found.</CommandEmpty>
           <CommandGroup>
             {searchResults !== null &&
@@ -134,7 +149,7 @@ export default function Search({ setSearchCount }: SearchProps) {
                             value.charAt(0).toUpperCase() +
                             value.slice(1, value.length);
                           setLabel(countryName); // label is aesthetic confirmation.
-                          setOpen(false);
+                          setIsOpen(false);
                           setSelectedCountry(country.alpha3Code);
                           router.push(`/countries/${country.alpha3Code}`);
                         }}

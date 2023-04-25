@@ -14,7 +14,6 @@ import { GetStaticProps, NextPage } from "next";
 import Image from "next/image";
 import { cache, useEffect, useState } from "react";
 import countriesJSON from "@/lib/data.json";
-import { Loader2 } from "lucide-react";
 import { Spinner } from "@/components/spinner";
 
 type HomePageProps = {

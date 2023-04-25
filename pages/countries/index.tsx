@@ -1,12 +1,15 @@
 // "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
-import { GetStaticProps, NextPage } from "next";
-import * as z from "zod";
-
+import { CountryCard } from "@/components/country/country-card";
+import { CountryTable } from "@/components/country/country-table";
+import Layout from "@/components/layout";
+import Search from "@/components/search";
+import SelectRegion from "@/components/select-region";
+import { SelectView } from "@/components/select-view";
+import { Spinner } from "@/components/spinner";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -14,16 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CountryCard } from "@/components/country/country-card";
-import { CountryTable } from "@/components/country/country-table";
-import Layout from "@/components/layout";
-import Search from "@/components/search";
-import SelectRegion from "@/components/select-region";
-import { SelectView } from "@/components/select-view";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { API_BASE_URL } from "@/lib/constants";
-import { Region, ResultsPerPage, ViewType } from "@/lib/enums";
+import { QueryKey, Region, ResultsPerPage, ViewType } from "@/lib/enums";
 import { filterCountryRegion, getViewType } from "@/lib/helpers";
 import { useToast } from "@/lib/hooks/ui/use-toast";
 import { usePagination } from "@/lib/hooks/use-pagination";
@@ -31,10 +27,11 @@ import { useAppStore } from "@/lib/state/app-store";
 import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import { cn, fetcher } from "@/lib/utils";
-import { Spinner } from "@/components/spinner";
-import { useCountrySearch } from "@/lib/hooks/use-country-search";
-import { SearchResult } from "@/lib/types/types-fuse-search-result";
+import { useQuery } from "@tanstack/react-query";
+import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
+import { GetStaticProps, NextPage } from "next";
 import React from "react";
+import * as z from "zod";
 
 type CountriesPageProps = {
   countries: ICountry[];
@@ -47,81 +44,68 @@ type CountriesPageProps = {
  */
 const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   const { toast } = useToast();
+  const { isOpenBanner } = useAppStore();
 
   const {
     selectedRegion,
     setSelectedRegion,
     selectedView,
-    setSelectedView,
-    selectedResultsPerPage,
-    setSelectedResultsPerPage,
+    setSelectedView, // selectedResultsPerPage, setSelectedResultsPerPage,
     shouldAutoFilterUiOnSearch,
     setShouldAutoFilterUiOnSearch,
-    searchedCountries,
-    setSearchedCountries,
+    searchedCountries, // setSearchedCountries,
   } = useCountryStore();
-  const { isOpenBanner } = useAppStore();
 
   const {
-    data: cachedCountries, // use default value if there's no cached data yet.
+    data: cachedCountries,
     isLoading,
     error,
   } = useQuery<ICountry[]>({
-    queryKey: ["countries"], // key for caching
-    queryFn: () => fetcher({ url: `${API_BASE_URL}/all` }), // function to fetch data
+    queryKey: [QueryKey.Countries], // key for caching
+    queryFn: async () => await fetcher({ url: `${API_BASE_URL}/all` }),
     initialData: countries, // initial data from getStaticProps
-  }); // Fetch the list of countries using tanstack-query.
+  });
 
-  const handleRegionSelect = (value: Region) => {
+  // Filter the list of countries based on the selected region.
+  function handleRegionSelect(value: Region) {
     setSelectedRegion(value);
     toast({ title: `Filtering region to ${value}` });
-  };
+  }
 
-  const handleSelectView = (value: string) => {
-    const ViewTypeSchema = z.nativeEnum(ViewType); // Define a Zod schema for the ViewType enum
+  function handleSelectLayoutView(value: string) {
     try {
-      const parsedValue = ViewTypeSchema.parse(value); // Validate the input against the schema.
-      const selectedView = getViewType(parsedValue); // HACK:debt of not checking if it matches enum. Validate!
+      const selectedView = getViewType(z.nativeEnum(ViewType).parse(value));
       setSelectedView(selectedView);
-      toast({
-        title: `View set to ${value}`,
-        description: `${value} is a valid view type`,
-      });
+      toast({ title: `View set to ${value}` });
     } catch (err) {
-      toast({
-        title: `Failed to set view to ${value} as it is not a valid type`,
-        description: `ERROR: ${err}`,
-      });
+      console.error(err);
       toast({
         title: `Reverting to ${getViewType(ViewType.Default)} view`,
+        description: `Failed to set view to ${value} as it is not a valid type. \n${err}`,
       });
       setSelectedView(ViewType.Default);
-      throw new Error(`${err}: ${value} is not a valid view type`);
     }
-  };
-  // Filter the list of countries based on the selected region.
+  }
 
+  const hasUserSearchResults = searchedCountries.length > 0;
   const displayedCountries: ICountry[] =
-    shouldAutoFilterUiOnSearch &&
-    searchedCountries &&
-    searchedCountries.length > 0
+    shouldAutoFilterUiOnSearch && hasUserSearchResults
       ? searchedCountries.map((results) => results.item)
-      : (cachedCountries as ICountry[]) || countries;
+      : cachedCountries;
 
   const filteredCountries: ICountry[] = filterCountryRegion({
     selectedRegion,
     displayedCountries,
   });
 
-  const styleHeader = cn(`${isOpenBanner ? "top-20 md:top-16" : "top-8"}
+  const headerStyles = cn(`${isOpenBanner ? "top-20 md:top-16" : "top-8"}
     sticky py-4 mb-2 z-30 w-full bg-white! bg-opacity-90 rounded-b-md backdrop-blur-2xl
     border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900/80!`);
 
-  const styleSearchBar = cn(
-    "relative z-10 flex flex-1 flex-wrap items-start justify-between"
+  const searchBarStyles = cn(
+    `relative z-10 flex flex-1 flex-wrap items-start justify-between`
   );
 
-  // Display a loading spinner while data is being fetched.
   if (isLoading) {
     return <Spinner />;
   }
@@ -132,38 +116,30 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   // Render the list of countries.
   return (
     <Layout title="Countries">
-      <header className={styleHeader}>
-        <div className={styleSearchBar}>
-          <Search />
-          <div className="mt-2">
-            <SwitchAutoUpdateResultView
-              label={`Auto update results`}
-              isChecked={shouldAutoFilterUiOnSearch}
-              setIsChecked={setShouldAutoFilterUiOnSearch}
-              id={"inputAutoUpdateSearchUI"}
-            />
-          </div>
-          <SelectRegion
-            selectedRegion={selectedRegion}
-            handleRegionSelect={handleRegionSelect}
-          />
-          <SelectView
-            selectedView={selectedView}
-            handleSelectView={handleSelectView}
-          />
-        </div>
-      </header>
+      <section className="flex flex-col min-h-screen">
+        <CountriesHeader
+          selectedRegion={selectedRegion}
+          handleRegionSelect={handleRegionSelect}
+          selectedView={selectedView}
+          handleSelectLayoutView={handleSelectLayoutView}
+          shouldAutoFilterUiOnSearch={shouldAutoFilterUiOnSearch}
+          setShouldAutoFilterUiOnSearch={setShouldAutoFilterUiOnSearch}
+          headerStyles={headerStyles}
+          searchBarStyles={searchBarStyles}
+          // className="sticky top-12 z-40 backdrop-blur-md w-full bg-white! border-b border-b-slate-200 dark:border-b-slate-700 dark:bg-slate-900!"
+        />
 
-      <div className="data">
-        {countries ? (
-          selectedView === ViewType.Default ||
-          selectedView === ViewType.Cards ? (
-            <PaginatedCollection data={filteredCountries} />
-          ) : selectedView === ViewType.Table ? (
-            <PaginatedCollection data={filteredCountries} />
-          ) : null
-        ) : null}
-      </div>
+        <div data-testid="countries-list" className="scroll-mt-10">
+          {countries ? (
+            selectedView === ViewType.Default ||
+            selectedView === ViewType.Cards ? (
+              <PaginatedCollection data={filteredCountries} />
+            ) : selectedView === ViewType.Table ? (
+              <PaginatedCollection data={filteredCountries} />
+            ) : null
+          ) : null}
+        </div>
+      </section>
     </Layout>
   );
 };
@@ -178,39 +154,15 @@ export const getStaticProps: GetStaticProps = async () => {
     props: {
       countries,
     },
-    // ISR: Incremental Static Regeneration
-    // Next.js will attempt to re-generate the page:
-    // - When a request comes in
-    // - At most once every 10 seconds
+    // ISR: Incremental Static Regeneration Next.js will attempt to re-generate the page:
+    // - When a request comes in - At most once every 10 seconds
     revalidate: 10, // In seconds
   };
 };
 
-// NOTE: getStaticPaths is only allowed for dynamic SSG pages and was found on '/countries'.
-// Read more: https://nextjs.org/docs/messages/non-dynamic-getstaticpaths-usage
-//
-// // This function gets called at build time on server-side.
-// // It may be called again, on a serverless function, if
-// // the path has not been generated.
-// export async function getStaticPaths() {
-//   const countries: ICountry[] = await fetcher({ url: `${API_BASE_URL}/all` });
-
-//   // const res = await fetch('https://.../posts')
-//   // const posts = await res.json()
-
-//   // Get the paths we want to pre-render based on posts
-//   const paths = countries.map((country: ICountry) => ({
-//     params: { id: country.alpha3Code },
-//   }));
-
-//   // We'll pre-render only these paths at build time.
-//   // { fallback: 'blocking' } will server-render pages
-//   // on-demand if the path doesn't exist.
-//   return { paths, fallback: "blocking" };
-// }
-
 export default CountriesPage;
 
+// NOTE: Keeping this for sentimental reasons. First code that started it all.
 // export default function HomePage() {
 //   const [countries, setCountries] = useState<any[] | null>(null);
 //
@@ -242,6 +194,7 @@ export default CountriesPage;
 
 type PaginatedCollectionProps<T> = {
   data: Array<T>;
+  className?: string;
 };
 
 type CountryCardsProps = {
@@ -251,6 +204,57 @@ type CountryCardsProps = {
     ? Array<ICountry>
     : any[];
 };
+
+type CountriesHeaderProps = {
+  headerStyles: string;
+  searchBarStyles: string;
+  shouldAutoFilterUiOnSearch: boolean;
+  setShouldAutoFilterUiOnSearch: (shouldAutoFilterUiOnSearch: boolean) => void;
+  selectedRegion: Region;
+  handleRegionSelect: (value: Region) => void;
+  selectedView: ViewType;
+  handleSelectLayoutView: (value: string) => void;
+  className?: string;
+};
+
+function CountriesHeader({
+  headerStyles,
+  searchBarStyles,
+  shouldAutoFilterUiOnSearch,
+  setShouldAutoFilterUiOnSearch,
+  selectedRegion,
+  handleRegionSelect,
+  selectedView,
+  handleSelectLayoutView,
+  className,
+  ...props
+}: CountriesHeaderProps): JSX.Element {
+  return (
+    <header className={cn(headerStyles, className)} {...props}>
+      <div className={searchBarStyles}>
+        <SelectRegion
+          selectedRegion={selectedRegion}
+          handleRegionSelect={handleRegionSelect}
+        />
+        <SelectView
+          selectedView={selectedView}
+          handleSelectView={handleSelectLayoutView}
+        />
+        <SwitchAutoUpdateResultView
+          label={`Auto update results`}
+          isChecked={shouldAutoFilterUiOnSearch}
+          setIsChecked={setShouldAutoFilterUiOnSearch}
+          id={"inputAutoUpdateSearchUI"}
+          key={`switchAutoUpdateSearchUI`}
+          data-testid={`switchAutoUpdateSearchUI`}
+          className="mt-2"
+        />
+        <Search />
+      </div>
+    </header>
+  );
+}
+
 function CountryCards({ cardsData }: CountryCardsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -265,11 +269,11 @@ function CountryCards({ cardsData }: CountryCardsProps) {
 
 export function PaginatedCollection<T>({
   data,
+  className,
   ...props
 }: PaginatedCollectionProps<T>) {
-  const { selectedResultsPerPage, setSelectedResultsPerPage } =
+  const { selectedResultsPerPage, setSelectedResultsPerPage, selectedView } =
     useCountryStore();
-  const { selectedView, setSelectedView } = useCountryStore();
   const pagination = usePagination({
     data,
     initalPageSize: selectedResultsPerPage,
@@ -305,99 +309,98 @@ export function PaginatedCollection<T>({
 
   // Render your table with the "page" array
   return (
-    <>
-      <div className=" scroll-mt-24! pb-8">
-        <div className="flex top-24! sticky! items-center justify-between border-t border-gray-200! bg-white! px-4 py-3 sm:px-6">
-          <div className="flex flex-1 justify-between sm:hidden">
-            <Button
-              title={"Previous"}
-              onClick={previousPage}
-              disabled={!canPreviousPage}
-              variant={"link"}
-              className="relative inline-flex items-center rounded-md border border-gray-300! bg-white! px-4 py-2 text-sm font-medium text-gray-700! hover:bg-gray-50!"
-            >
-              Previous
-            </Button>
+    <div className={cn(className, "scroll-mt-24! pb-8)")} {...props}>
+      <div className="flex top-24! sticky! items-center justify-between border-t border-gray-200! bg-white! px-4 py-3 sm:px-6">
+        <div className="flex flex-1 justify-between sm:hidden">
+          <Button
+            title={"Previous"}
+            onClick={previousPage}
+            disabled={!canPreviousPage}
+            variant={"link"}
+            className="relative inline-flex items-center rounded-md border border-gray-300! bg-white! px-4 py-2 text-sm font-medium text-gray-700! hover:bg-gray-50!"
+          >
+            Previous
+          </Button>
 
-            <Button
-              title={"Next"}
-              onClick={nextPage}
-              disabled={!canNextPage}
-              variant={"link"}
-              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300! bg-white! px-4 py-2 text-sm font-medium text-gray-700! hover:bg-gray-50!"
-            >
-              Next
-            </Button>
-          </div>
-
-          <div className="hidden sm:flex sm:flex-1 sm:justify-between sm:items-center">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Showing{" "}
-                <span className="font-medium">{pageIndex * pageSize}</span> to{" "}
-                <span className="font-medium">
-                  {pageIndex * pageSize + pageSize}
-                </span>{" "}
-                of <span className="font-medium">{pageCount * pageSize}</span>{" "}
-                results
-              </p>
-            </div>
-
-            <SelectResultsPerPage
-              selectedValue={selectedResultsPerPage}
-              handleSelectResultsPerPage={(value) => {
-                setSelectedResultsPerPage(value);
-                setPageSize(z.number().parse(Number(value)));
-              }}
-            />
-            <div>
-              <nav
-                className="inline-flex -space-x-px rounded-md shadow-sm isolate"
-                aria-label="Pagination"
-              >
-                <Button
-                  title={"Previous"}
-                  onClick={previousPage}
-                  variant={"link"}
-                  disabled={!canPreviousPage}
-                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400! ring-1! ring-inset ring-gray-300! hover:bg-gray-50! focus:z-20 focus:outline-offset-0"
-                >
-                  <span className="sr-only">Previous</span>
-                  <ChevronLeftIcon className="w-5 h-5" aria-hidden="true" />
-                </Button>
-                {pageButtons}
-                <Button
-                  title={"Next"}
-                  onClick={nextPage}
-                  disabled={!canNextPage}
-                  variant={"link"}
-                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400! ring-1! ring-inset ring-gray-300! hover:bg-gray-50! focus:z-20 focus:outline-offset-0"
-                >
-                  <span className="sr-only">Next</span>
-                  <ChevronsRightIcon className="w-5 h-5" aria-hidden="true" />
-                </Button>
-              </nav>
-            </div>
-          </div>
+          <Button
+            title={"Next"}
+            onClick={nextPage}
+            disabled={!canNextPage}
+            variant={"link"}
+            className="relative ml-3 inline-flex items-center rounded-md border border-gray-300! bg-white! px-4 py-2 text-sm font-medium text-gray-700! hover:bg-gray-50!"
+          >
+            Next
+          </Button>
         </div>
 
-        {/* {page.map(renderItem)} */}
-        <div className="relative">
-          <ScrollArea className="p-4 w-full rounded-md border h-[78vh] min-w-[350px]">
-            {selectedView === ViewType.Default ||
-            selectedView === ViewType.Cards ? (
-              <CountryCards cardsData={page} />
-            ) : selectedView === ViewType.Table ? (
-              <CountryTable
-                headerData={["Name", "Capital", "Population"]}
-                keysToRender={["name", "capital", "population"]}
-                tableData={page}
-              />
-            ) : null}
-          </ScrollArea>
+        <div className="hidden sm:flex sm:flex-1 sm:justify-between sm:items-center">
+          <div>
+            <p className="text-sm text-muted-foreground">
+              Showing{" "}
+              <span className="font-medium">{pageIndex * pageSize}</span> to{" "}
+              <span className="font-medium">
+                {pageIndex * pageSize + pageSize}
+              </span>{" "}
+              of <span className="font-medium">{pageCount * pageSize}</span>{" "}
+              results
+            </p>
+          </div>
+
+          <div>
+            <nav
+              className="inline-flex -space-x-px rounded-md shadow-sm isolate"
+              aria-label="Pagination"
+            >
+              <Button
+                title={"Previous"}
+                onClick={previousPage}
+                variant={"link"}
+                disabled={!canPreviousPage}
+                className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400! ring-1! ring-inset ring-gray-300! hover:bg-gray-50! focus:z-20 focus:outline-offset-0"
+              >
+                <span className="sr-only">Previous</span>
+                <ChevronLeftIcon className="w-5 h-5" aria-hidden="true" />
+              </Button>
+              {pageButtons}
+              <Button
+                title={"Next"}
+                onClick={nextPage}
+                disabled={!canNextPage}
+                variant={"link"}
+                className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400! ring-1! ring-inset ring-gray-300! hover:bg-gray-50! focus:z-20 focus:outline-offset-0"
+              >
+                <span className="sr-only">Next</span>
+                <ChevronsRightIcon className="w-5 h-5" aria-hidden="true" />
+              </Button>
+            </nav>
+          </div>
+
+          <SelectResultsPerPage
+            selectedValue={selectedResultsPerPage}
+            handleSelectResultsPerPage={(value) => {
+              setSelectedResultsPerPage(value);
+              setPageSize(z.number().parse(Number(value)));
+            }}
+          />
         </div>
       </div>
-    </>
+
+      {/* {page.map(renderItem)} */}
+      <div className="relative">
+        <ScrollArea className="p-4 w-full rounded-md border h-[78vh] min-w-[350px]">
+          {selectedView === ViewType.Default ||
+          selectedView === ViewType.Cards ? (
+            <CountryCards cardsData={page} />
+          ) : selectedView === ViewType.Table ? (
+            <CountryTable
+              headerData={["Name", "Capital", "Population"]}
+              keysToRender={["name", "capital", "population"]}
+              tableData={page}
+            />
+          ) : null}
+        </ScrollArea>
+      </div>
+    </div>
   );
   // Use the pagination controls to update the "pageSize" and "pageIndex" values
   // Use the "pageOptions" array to render a list of page numbers for the user to click
@@ -486,6 +489,9 @@ type SwitchAutoUpdateResultViewProps = {
   isChecked: boolean;
   setIsChecked: (value: boolean) => void;
   id: string;
+  /** Props are for switch component. */
+  /** className are for the whole component. */
+  className?: string;
 };
 
 export function SwitchAutoUpdateResultView({
@@ -493,10 +499,11 @@ export function SwitchAutoUpdateResultView({
   isChecked,
   setIsChecked,
   id,
+  className,
   ...props
 }: SwitchAutoUpdateResultViewProps) {
   return (
-    <div className="flex items-center space-x-2">
+    <div className={cn(className, `flex items-center space-x-2`)}>
       <Switch
         className="scale-75"
         checked={isChecked}
@@ -506,7 +513,9 @@ export function SwitchAutoUpdateResultView({
         id={id}
         {...props}
       />
-      <Label className="text-xs text-muted-foreground"  htmlFor={id}>{label}</Label>
+      <Label className="text-xs text-muted-foreground" htmlFor={id}>
+        {label}
+      </Label>
     </div>
   );
 }
