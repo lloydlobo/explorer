@@ -5,6 +5,8 @@ import { ChevronLeftIcon, ChevronsRightIcon } from "lucide-react";
 import { GetStaticProps, NextPage } from "next";
 import * as z from "zod";
 
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -30,6 +32,9 @@ import { useCountryStore } from "@/lib/state/country-store";
 import { ICountry } from "@/lib/types/types-country";
 import { cn, fetcher } from "@/lib/utils";
 import { Spinner } from "@/components/spinner";
+import { useCountrySearch } from "@/lib/hooks/use-country-search";
+import { SearchResult } from "@/lib/types/types-fuse-search-result";
+import React from "react";
 
 type CountriesPageProps = {
   countries: ICountry[];
@@ -50,6 +55,10 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
     setSelectedView,
     selectedResultsPerPage,
     setSelectedResultsPerPage,
+    shouldAutoFilterUiOnSearch,
+    setShouldAutoFilterUiOnSearch,
+    searchedCountries,
+    setSearchedCountries,
   } = useCountryStore();
   const { isOpenBanner } = useAppStore();
 
@@ -90,9 +99,15 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
       throw new Error(`${err}: ${value} is not a valid view type`);
     }
   };
-
   // Filter the list of countries based on the selected region.
-  const displayedCountries = (cachedCountries as ICountry[]) || countries;
+
+  const displayedCountries: ICountry[] =
+    shouldAutoFilterUiOnSearch &&
+    searchedCountries &&
+    searchedCountries.length > 0
+      ? searchedCountries.map((results) => results.item)
+      : (cachedCountries as ICountry[]) || countries;
+
   const filteredCountries: ICountry[] = filterCountryRegion({
     selectedRegion,
     displayedCountries,
@@ -110,34 +125,32 @@ const CountriesPage: NextPage<CountriesPageProps> = ({ countries }) => {
   if (isLoading) {
     return <Spinner />;
   }
-
-  // Display an error message if there was an error fetching the data.
   if (error instanceof Error) {
     return <div>Error: {error.message}</div>;
   }
+
   // Render the list of countries.
   return (
     <Layout title="Countries">
       <header className={styleHeader}>
         <div className={styleSearchBar}>
           <Search />
-          <SelectView
-            selectedView={selectedView}
-            handleSelectView={handleSelectView}
+          <SwitchAutoUpdateResultView
+            label={`Auto update results`}
+            isChecked={shouldAutoFilterUiOnSearch}
+            setIsChecked={setShouldAutoFilterUiOnSearch}
+            id={"inputAutoUpdateSearchUI"}
           />
           <SelectRegion
             selectedRegion={selectedRegion}
             handleRegionSelect={handleRegionSelect}
           />
+          <SelectView
+            selectedView={selectedView}
+            handleSelectView={handleSelectView}
+          />
         </div>
       </header>
-
-      {/* {countries ? (
-        <CountryList
-          countries={filteredCountries}
-          selectedView={selectedView} // typescript: Type 'string' is not assignable to type 'ViewType'.
-        />
-      ) : null} */}
 
       <div className="data">
         {countries ? (
@@ -463,5 +476,34 @@ export function SelectResultsPerPage({
         </SelectItem>
       </SelectContent>
     </Select>
+  );
+}
+
+type SwitchAutoUpdateResultViewProps = {
+  label: string;
+  isChecked: boolean;
+  setIsChecked: (value: boolean) => void;
+  id: string;
+};
+
+export function SwitchAutoUpdateResultView({
+  label,
+  isChecked,
+  setIsChecked,
+  id,
+  ...props
+}: SwitchAutoUpdateResultViewProps) {
+  return (
+    <div className="flex items-center space-x-2">
+      <Switch
+        checked={isChecked}
+        onCheckedChange={(e: boolean) => {
+          setIsChecked(z.boolean().parse(e));
+        }}
+        id={id}
+        {...props}
+      />
+      <Label htmlFor={id}>{label}</Label>
+    </div>
   );
 }

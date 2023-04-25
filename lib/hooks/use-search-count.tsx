@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { SearchResult } from "../types/types-fuse-search-result";
+import { SearchResult } from "@/lib/types/types-fuse-search-result";
 
 /**
  * Props for the `useSearchCount` hook.

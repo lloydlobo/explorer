@@ -11,6 +11,7 @@ interface SearchResults {
   query: string;
   setQuery: React.Dispatch<React.SetStateAction<string>>;
 }
+
 /**
  * `useCountrySearch` is a custom hook that provides search functionality for countries based on a query string.
  * Uses the useQueryAllCountries hook to fetch country data from the API and Fuse.js to perform the search.
@@ -20,9 +21,9 @@ interface SearchResults {
 export function useCountrySearch(): SearchResults {
   const { data: countries, isLoading, error } = useQueryAllCountries();
   const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[] | null>(
-    null
-  );
+  const [searchResults, setSearchResults] = useState<NonNullable<
+    SearchResult[]
+  > | null>(null);
 
   const debouncedQuery = useDebounce<string>({ value: query, delay: 300 });
 
@@ -42,7 +43,7 @@ export function useCountrySearch(): SearchResults {
     }
   }
 
-  useDebounce({ value: debouncedQuery, delay: 500, callback: searchCountries });
+  useDebounce({ value: debouncedQuery, delay: 300, callback: searchCountries });
 
   return { searchResults, isLoading, error, query, setQuery };
 }

@@ -1,12 +1,16 @@
 import { atom, useAtom } from "jotai";
 import produce from "immer";
 import { Region, ResultsPerPage, ViewType } from "@/lib/enums";
+import { ICountry } from "@/lib/types/types-country";
+import { SearchResult } from "@/lib/types/types-fuse-search-result";
 
 interface AppState {
   selectedCountry: string | null;
   selectedRegion: Region;
   selectedView: ViewType;
   selectedResultsPerPage: ResultsPerPage;
+  shouldAutoFilterUiOnSearch: boolean;
+  searchedCountries: SearchResult[];
 }
 
 const appStateAtom = atom<AppState>({
@@ -14,6 +18,8 @@ const appStateAtom = atom<AppState>({
   selectedRegion: Region.All,
   selectedView: ViewType.Cards,
   selectedResultsPerPage: ResultsPerPage.Ten,
+  shouldAutoFilterUiOnSearch: false,
+  searchedCountries: [] as SearchResult[],
 });
 
 /**
@@ -69,6 +75,27 @@ export function useCountryStore() {
       })
     );
 
+  const setShouldAutoFilterUiOnSearch = (shouldAutoFilterUiOnSearch: boolean) =>
+    setAppState(
+      produce((draft) => {
+        draft.shouldAutoFilterUiOnSearch = shouldAutoFilterUiOnSearch;
+      })
+    );
+  const setSearchedCountries = (searchedCountries: SearchResult[]) =>
+    setAppState((prev) => {
+      const initalState = structuredClone(prev);
+      return {
+        ...initalState,
+        searchedCountries: searchedCountries,
+      };
+    });
+
+  // setAppState(
+  //   produce((draft) => {
+  //     draft.searchedCountries = searchedCountries as SearchResult[];
+  //   })
+  // );
+
   return {
     /**
      * `selectedCountry`: The currently selected country from the app state.
@@ -100,6 +127,10 @@ export function useCountryStore() {
     setSelectedView,
     selectedResultsPerPage: appState.selectedResultsPerPage,
     setSelectedResultsPerPage,
+    shouldAutoFilterUiOnSearch: appState.shouldAutoFilterUiOnSearch,
+    setShouldAutoFilterUiOnSearch,
+    searchedCountries: appState.searchedCountries,
+    setSearchedCountries,
   };
 }
 
